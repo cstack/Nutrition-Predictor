@@ -20,4 +20,13 @@ If you need to add a new python package:
 
 Private constants like API keys are kept in `data_collection/private_consts.py`, which is not in the repo. Add it manually. It is ignored by `.gitignore`.
 
+Pipeline
+--------
 
+Download 1000 examples:
+
+`python download_data.py 1000`
+
+Extract features from raw data:
+
+`python extract_features.py`
