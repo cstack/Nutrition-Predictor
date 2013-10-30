@@ -1,3 +1,4 @@
 data_collection/private_consts.py
 *.pyc
 venv/
+*.swp
