@@ -32,8 +32,7 @@ def process_item(raw_item, food_vocabulary, stop_words):
   return (tokens_list, cpg)
 
 def extract_tokens(raw_item, stop_words):
-  """Remove duplicates.
-  TODO: Clean punctuation, remove stop words, apply stemming"""
+  """Remove duplicates, remove punctuation, remove stop words, apply stemming"""
   name = raw_item["item_name"]
   description = raw_item["item_description"]
 
@@ -81,6 +80,8 @@ for item in raw:
   if example:
     x_data.append(example[0])
     t_data.append(example[1])
+
+print len(t_data)
 
 save_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
 pickle.dump( (x_data, t_data) , open( save_file, "wb" ) )
