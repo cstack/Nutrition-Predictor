@@ -6,18 +6,17 @@ usable examples.
 import private_consts
 from stemming.porter2 import stem
 import string
-from nltk.corpus import stopwords
 
 import pickle
 import os
 from sets import Set
 
-def process_item(raw_item, food_vocabulary):
+def process_item(raw_item, food_vocabulary, stop_words):
   """
   Take an object downloaded from Nutritionix and turn it into an example.
   Return None if we could not process it.
   """
-  tokens = extract_tokens(raw_item)
+  tokens = extract_tokens(raw_item, stop_words)
   
   tokens_list = [0] * len(food_vocabulary)
   for token in tokens:
@@ -32,7 +31,7 @@ def process_item(raw_item, food_vocabulary):
 
   return (tokens_list, cpg)
 
-def extract_tokens(raw_item):
+def extract_tokens(raw_item, stop_words):
   """Remove duplicates.
   TODO: Clean punctuation, remove stop words, apply stemming"""
   name = raw_item["item_name"]
@@ -54,11 +53,8 @@ def extract_tokens(raw_item):
     raw_token = raw_token.translate(string.maketrans("",""), string.punctuation)
     
     # Don't add it if it's a stop word.
-    dummy_set = Set()
-    dummy_set.add("the")
-    dummy_set.add("of")
-      #if raw_token in stopwords.words("english")
-    if raw_token in dummy_set:
+    if raw_token in stop_words:
+      #if raw_token in dummy_set:
       continue
 
     tokens.add(stem(raw_token))
@@ -68,19 +64,20 @@ raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
 
 raw = pickle.load( open( raw_file, "rb" ) )
 
+stopwords_file = os.path.expanduser(private_consts.SAVE_DIR)+"stop_words.pickle"
+stop_words = pickle.load( open( stopwords_file, "rb" ) )
+
 food_vocabulary = Set()
 for item in raw:
-  food_vocabulary = food_vocabulary.union(extract_tokens(item))
+  food_vocabulary = food_vocabulary.union(extract_tokens(item, stop_words))
 
 food_vocabulary = sorted(food_vocabulary)
 print food_vocabulary
 
-print stopwords.words("english")
-
 x_data = []
 t_data = []
 for item in raw:
-  example = process_item(item, food_vocabulary)
+  example = process_item(item, food_vocabulary, stop_words)
   if example:
     x_data.append(example[0])
     t_data.append(example[1])
