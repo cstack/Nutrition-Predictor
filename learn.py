@@ -4,21 +4,32 @@ Learn a linear regression model
 
 from sklearn import linear_model
 
+import os, pickle, numpy
+import private_consts
+
 clf = linear_model.LinearRegression()
 
-"""
-Below is an example.
-TODO: make our data look like this, then run
-linear regression on it.
-"""
+data_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
 
-x = [[0, 0], [1, 1], [2, 2]]
-t = [0, 1, 2]
+data = pickle.load( open( data_file, "rb" ) )
 
-print "Examples: ", x
-print "Values:", t
+(x,t) = data
+
+num_examples = len(x)
+num_train = int(num_examples*0.8)
+x_train = x[:num_train]
+x_test = x[num_train:]
+t_train = t[:num_train]
+t_test = t[num_train:]
 
 print "Learning..."
-clf.fit (x, t)
+clf.fit (x_train, t_train)
 
 print "Learned coefficients:", clf.coef_
+
+print "Real values, predictions"
+for i in range(len(x_test)):
+  example = x_test[i]
+  prediction = numpy.dot(example, clf.coef_)
+  print t[i], prediction
+
