@@ -9,12 +9,17 @@ import pickle
 import os
 from sets import Set
 
-def process_item(raw_item):
+def process_item(raw_item, food_vocabulary):
   """
   Take an object downloaded from Nutritionix and turn it into an example.
   Return None if we could not process it.
   """
   tokens = extract_tokens(raw_item)
+  
+  tokens_list = [0] * len(food_vocabulary)
+  for token in tokens:
+    tokens_list[food_vocabulary.index(token)] = 1
+  
   calories = raw_item["nf_calories"]
   grams = raw_item["nf_serving_weight_grams"]
   if not grams:
@@ -22,7 +27,7 @@ def process_item(raw_item):
     return
   cpg = calories * 1.0 / grams; # Calories per gram
 
-  return (tokens, cpg)
+  return (tokens_list, cpg)
 
 def extract_tokens(raw_item):
   """Remove duplicates.
@@ -41,7 +46,21 @@ raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
 
 raw = pickle.load( open( raw_file, "rb" ) )
 
+food_vocabulary = Set()
 for item in raw:
-  example = process_item(item)
+  food_vocabulary = food_vocabulary.union(extract_tokens(item))
+
+food_vocabulary = sorted(food_vocabulary)
+print food_vocabulary
+
+x_data = []
+t_data = []
+for item in raw:
+  example = process_item(item, food_vocabulary)
   if example:
-    print example[1], example[0]
+    x_data.append(example[0])
+    t_data.append(example[1])
+
+save_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
+pickle.dump( (x_data, t_data) , open( save_file, "wb" ) )
+
