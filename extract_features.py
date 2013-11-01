@@ -6,6 +6,7 @@ usable examples.
 import private_consts
 from stemming.porter2 import stem
 import string
+from nltk.corpus import stopwords
 
 import pickle
 import os
@@ -42,6 +43,15 @@ def extract_tokens(raw_item):
     raw_tokens = raw_tokens.union(name.split())
   if description:
     raw_tokens = raw_tokens.union(description.split())
+
+  # remove the stop words
+
+  final_tokens = Set()
+  for token in tokens:
+    if token not in stopwords.words("english"):
+      final_tokens.add(token)
+
+  return final_tokens
 
   tokens = Set()
   for raw_token in raw_tokens:
