@@ -44,21 +44,24 @@ def extract_tokens(raw_item):
   if description:
     raw_tokens = raw_tokens.union(description.split())
 
-  # remove the stop words
-
-  final_tokens = Set()
-  for token in tokens:
-    if token not in stopwords.words("english"):
-      final_tokens.add(token)
-
-  return final_tokens
-
   tokens = Set()
   for raw_token in raw_tokens:
-    # To ASCII
-    raw_token = str(raw_token)
+    # To lowercase ASCII
+    raw_token = str(raw_token).lower()
+    raw_token = raw_token.replace("&reg;", "")
+    
+    # Remove punctuation. TODO(wjbillin): Needs work.
     raw_token = raw_token.translate(string.maketrans("",""), string.punctuation)
-    tokens.add(stem(raw_token.lower()))
+    
+    # Don't add it if it's a stop word.
+    dummy_set = Set()
+    dummy_set.add("the")
+    dummy_set.add("of")
+      #if raw_token in stopwords.words("english")
+    if raw_token in dummy_set:
+      continue
+
+    tokens.add(stem(raw_token))
   return tokens
 
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
