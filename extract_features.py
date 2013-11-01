@@ -4,6 +4,8 @@ usable examples.
 """
 
 import private_consts
+from stemming.porter2 import stem
+import string
 
 import pickle
 import os
@@ -34,13 +36,20 @@ def extract_tokens(raw_item):
   TODO: Clean punctuation, remove stop words, apply stemming"""
   name = raw_item["item_name"]
   description = raw_item["item_description"]
-  tokens = Set()
-  if name:
-    tokens = tokens.union(name.split())
-  if description:
-    tokens = tokens.union(description.split())
-  return tokens
 
+  raw_tokens = Set()
+  if name:
+    raw_tokens = raw_tokens.union(name.split())
+  if description:
+    raw_tokens = raw_tokens.union(description.split())
+
+  tokens = Set()
+  for raw_token in raw_tokens:
+    # To ASCII
+    raw_token = str(raw_token)
+    raw_token = raw_token.translate(string.maketrans("",""), string.punctuation)
+    tokens.add(stem(raw_token.lower()))
+  return tokens
 
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
 
