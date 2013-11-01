@@ -30,3 +30,14 @@ Download 1000 examples:
 Extract features from raw data:
 
 `python extract_features.py`
+
+NLTK
+----
+run the following:
+
+% python
+
+>>> import nltk
+>>> nltk.download()
+
+Then a window should open up, click on the Corpora tab, then scroll down to the "stopwords" identifier, and click Download

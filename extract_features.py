@@ -72,6 +72,8 @@ for item in raw:
 food_vocabulary = sorted(food_vocabulary)
 print food_vocabulary
 
+print stopwords.words("english")
+
 x_data = []
 t_data = []
 for item in raw:
