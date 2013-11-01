@@ -4,6 +4,7 @@ usable examples.
 """
 
 import private_consts
+from nltk.corpus import stopwords
 
 import pickle
 import os
@@ -39,7 +40,15 @@ def extract_tokens(raw_item):
     tokens = tokens.union(name.split())
   if description:
     tokens = tokens.union(description.split())
-  return tokens
+
+  # remove the stop words
+
+  final_tokens = Set()
+  for token in tokens:
+    if token not in stopwords.words("english"):
+      final_tokens.add(token)
+
+  return final_tokens
 
 
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
