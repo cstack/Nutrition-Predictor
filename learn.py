@@ -7,29 +7,43 @@ from sklearn import linear_model
 import os, pickle, numpy
 import private_consts
 
-clf = linear_model.LinearRegression()
+def linearRegression(x, t):
+  """Peform linear regression,
+  return learned model m"""
+  clf = linear_model.LinearRegression()
+  num_examples = len(x)
+  clf.fit (x, t)
+  return clf
+
+def predict(x, m):
+  """Use learned model m to predict t values for x"""
+  return m.predict(x)
+
+def crossValidation(x,t):
+  num_examples = len(x)
+  num_train = int(num_examples*0.8)
+  x_train = x[:num_train]
+  x_test = x[num_train:]
+  t_train = t[:num_train]
+  t_test = t[num_train:]
+  m = linearRegression(x_train, t_train)
+  p = predict(x_test, m)
+  diff = [p[i] - t_test[i] for i in range(len(p))]
+  error = sum([i**2 for i in diff]) / len(p)
+  return (m, error)
 
 data_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
 
+print "Loading data..."
 data = pickle.load( open( data_file, "rb" ) )
-
 (x,t) = data
 
-num_examples = len(x)
-num_train = int(num_examples*0.8)
-x_train = x[:num_train]
-x_test = x[num_train:]
-t_train = t[:num_train]
-t_test = t[num_train:]
-
 print "Learning..."
-clf.fit (x_train, t_train)
+(model, error) = crossValidation(x,t)
 
-print "Learned coefficients:", clf.coef_
+print "Error:", error
 
-print "Real values, predictions"
-for i in range(len(x_test)):
-  example = x_test[i]
-  prediction = numpy.dot(example, clf.coef_)
-  print t[i], prediction
+save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
+pickle.dump( model , open( save_file, "wb" ) )
+print "Model saved in model.pickle"
 
