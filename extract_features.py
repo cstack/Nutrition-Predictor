@@ -17,11 +17,11 @@ def process_item(raw_item, food_vocabulary, stop_words):
   Return None if we could not process it.
   """
   tokens = extract_tokens(raw_item, stop_words)
-  
+
   tokens_list = [0] * len(food_vocabulary)
   for token in tokens:
     tokens_list[food_vocabulary.index(token)] = 1
-  
+
   calories = raw_item["nf_calories"]
   grams = raw_item["nf_serving_weight_grams"]
   if not grams:
@@ -47,10 +47,10 @@ def extract_tokens(raw_item, stop_words):
     # To lowercase ASCII
     raw_token = str(raw_token).lower()
     raw_token = raw_token.replace("&reg;", "")
-    
+
     # Remove punctuation. TODO(wjbillin): Needs work.
     raw_token = raw_token.translate(string.maketrans("",""), string.punctuation)
-    
+
     # Don't add it if it's a stop word.
     if raw_token in stop_words:
       #if raw_token in dummy_set:
@@ -85,4 +85,8 @@ print len(t_data)
 
 save_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
 pickle.dump( (x_data, t_data) , open( save_file, "wb" ) )
+
+f = open(os.path.expanduser(private_consts.SAVE_DIR)+"token_list.txt", 'w')
+f.write("\n".join(food_vocabulary))
+f.close()
 
