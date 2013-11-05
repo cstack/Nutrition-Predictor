@@ -4,12 +4,12 @@ usable examples.
 """
 
 import private_consts
+from load_save_data import save_data
 from stemming.porter2 import stem
 import string
 
 import pickle
 import os
-from sets import Set
 
 def process_item(raw_item, food_vocabulary, stop_words):
   """
@@ -18,10 +18,6 @@ def process_item(raw_item, food_vocabulary, stop_words):
   """
   tokens = extract_tokens(raw_item, stop_words)
 
-  tokens_list = [0] * len(food_vocabulary)
-  for token in tokens:
-    tokens_list[food_vocabulary.index(token)] = 1
-
   calories = raw_item["nf_calories"]
   grams = raw_item["nf_serving_weight_grams"]
   if not grams:
@@ -29,20 +25,20 @@ def process_item(raw_item, food_vocabulary, stop_words):
     return
   cpg = calories * 1.0 / grams; # Calories per gram
 
-  return (tokens_list, cpg)
+  return (tokens, cpg)
 
 def extract_tokens(raw_item, stop_words):
   """Remove duplicates, remove punctuation, remove stop words, apply stemming"""
   name = raw_item["item_name"]
   description = raw_item["item_description"]
 
-  raw_tokens = Set()
+  raw_tokens = set()
   if name:
     raw_tokens = raw_tokens.union(name.split())
   if description:
     raw_tokens = raw_tokens.union(description.split())
 
-  tokens = Set()
+  tokens = set()
   for raw_token in raw_tokens:
     # To lowercase ASCII
     raw_token = str(raw_token).lower()
@@ -59,6 +55,7 @@ def extract_tokens(raw_item, stop_words):
     tokens.add(stem(raw_token))
   return tokens
 
+print "Loading saved api data..."
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
 
 raw = pickle.load( open( raw_file, "rb" ) )
@@ -66,25 +63,20 @@ raw = pickle.load( open( raw_file, "rb" ) )
 stopwords_file = os.path.expanduser(private_consts.SAVE_DIR)+"stop_words.pickle"
 stop_words = pickle.load( open( stopwords_file, "rb" ) )
 
-food_vocabulary = Set()
+print "Building vocabulary..."
+food_vocabulary = set()
 for item in raw:
   food_vocabulary = food_vocabulary.union(extract_tokens(item, stop_words))
 
 food_vocabulary = sorted(food_vocabulary)
 print food_vocabulary
 
-x_data = []
-t_data = []
-for item in raw:
-  example = process_item(item, food_vocabulary, stop_words)
-  if example:
-    x_data.append(example[0])
-    t_data.append(example[1])
+print "Processing examples..."
+examples = [nonNone for nonNone in [process_item(item, food_vocabulary, stop_words) for item in raw] if nonNone]
 
-print len(t_data)
+print "Saving",len(examples),"examples..."
 
-save_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
-pickle.dump( (x_data, t_data) , open( save_file, "wb" ) )
+save_data(food_vocabulary, examples)
 
 f = open(os.path.expanduser(private_consts.SAVE_DIR)+"token_list.txt", 'w')
 f.write("\n".join(food_vocabulary))
