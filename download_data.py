@@ -25,7 +25,13 @@ def download(examples_to_download, save_dir):
     print "Downloading items {0} through {1}".format(i*ITEMS_PER_API_CALL, (i+1)*ITEMS_PER_API_CALL)
     results = nix.search().nxql(
       filters = {
-        "item_type":1
+        "item_type":1,
+        "nf_serving_weight_grams":{
+          "gt":0
+        },
+        "nf_calories":{
+          "gt":0
+        }
       },
       offset = i*ITEMS_PER_API_CALL,
       limit = ITEMS_PER_API_CALL
