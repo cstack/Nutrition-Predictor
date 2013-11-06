@@ -6,6 +6,7 @@ from sklearn import linear_model
 
 import os, pickle, numpy
 import private_consts
+from load_save_data import load_data
 
 def linearRegression(x, t):
   """Peform linear regression,
@@ -32,11 +33,8 @@ def crossValidation(x,t):
   error = sum([i**2 for i in diff]) / len(p)
   return (m, error)
 
-data_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
-
 print "Loading data..."
-data = pickle.load( open( data_file, "rb" ) )
-(x,t) = data
+(x,t) = load_data()
 
 print "Learning..."
 (model, error) = crossValidation(x,t)

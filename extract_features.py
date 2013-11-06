@@ -4,12 +4,12 @@ usable examples.
 """
 
 import private_consts
+from load_save_data import save_data
 from stemming.porter2 import stem
 import string
 
 import pickle
 import os
-from sets import Set
 
 def process_item(raw_item, food_vocabulary, stop_words):
   """
@@ -18,29 +18,28 @@ def process_item(raw_item, food_vocabulary, stop_words):
   """
   
   tokens = extract_tokens(raw_item, stop_words)
-
-  tokens_list = [0] * len(food_vocabulary)
-  for token in tokens:
-    tokens_list[food_vocabulary.index(token)] = 1
   
+  if len(tokens) == 0:
+    return
+
   calories = raw_item["nf_calories"]
   grams = raw_item["nf_serving_weight_grams"]
   cpg = calories * 1.0 / grams; # Calories per gram
 
-  return (tokens_list, cpg)
+  return (tokens, cpg)
 
 def extract_tokens(raw_item, stop_words):
   """Remove duplicates, remove punctuation, remove stop words, apply stemming"""
   name = raw_item["item_name"]
   description = raw_item["item_description"]
 
-  raw_tokens = Set()
+  raw_tokens = set()
   if name:
     raw_tokens = raw_tokens.union(name.split())
   if description:
     raw_tokens = raw_tokens.union(description.split())
 
-  tokens = Set()
+  tokens = set()
   for raw_token in raw_tokens:
     # To lowercase ASCII
     raw_token = str(raw_token).lower()
@@ -64,27 +63,38 @@ def extract_tokens(raw_item, stop_words):
     tokens.add(stem(raw_token))
   return tokens
 
-def get_word_frequency_diagnostics(phi_matrix):
+def get_word_frequency_diagnostics(examples, food_vocabulary):
   """Print diagnostic information about the vocabulary and how often
      the vocab words appear in our examples
   """
-  if len(phi_matrix) == 0:
+  if len(examples) == 0:
     return
   
   word_freq = {}
-  # Initialize dict. TODO(wjbillin): There's probably a better way to do this.
-  for i, val in enumerate(phi_matrix[0]):
-    word_freq[i] = 0;
+  # Initialize dict with all the tokens and a count of 0.
+  for token in food_vocabulary:
+    word_freq[token] = 0
 
-  for example in phi_matrix:
-    for idx, count in enumerate(example)
-      word_freq[idx] += count
+  # For each time we see a term appear, increment the frequency.
+  for example in examples:
+    for token in example[0]:
+      word_freq[token] = word_freq[token] + 1
 
+  # Frequencies should be sorted on the frequency.
+  frequencies = set()
+  for key in word_freq:
+    frequencies.add((word_freq[key], key))
+
+  print sorted(frequencies)
+  
+  print "There are " + str(len(examples)) + " examples"
+  print "There are " + str(len(food_vocabulary)) + " vocab words"
   
   return
 
 
 # Beginning of execution.
+print "Loading saved api data..."
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
 
 raw = pickle.load( open( raw_file, "rb" ) )
@@ -92,7 +102,8 @@ raw = pickle.load( open( raw_file, "rb" ) )
 stopwords_file = os.path.expanduser(private_consts.SAVE_DIR)+"stop_words.pickle"
 stop_words = pickle.load( open( stopwords_file, "rb" ) )
 
-food_vocabulary = Set()
+print "Building vocabulary..."
+food_vocabulary = set()
 for item in raw:
   food_vocabulary = food_vocabulary.union(extract_tokens(item, stop_words))
 
@@ -100,21 +111,13 @@ food_vocabulary = sorted(food_vocabulary)
 
 print food_vocabulary
 
-x_data = []
-t_data = []
-for item in raw:
-  example = process_item(item, food_vocabulary, stop_words)
-  if example:
-    x_data.append(example[0])
-    t_data.append(example[1])
+print "Processing examples..."
+examples = [nonNone for nonNone in [process_item(item, food_vocabulary, stop_words) for item in raw] if nonNone]
 
-print "There are " + str(len(t_data)) + " items"
-print "There are " + str(len(food_vocabulary)) + " distinct vocab words"
+get_word_frequency_diagnostics(examples, food_vocabulary)
 
-get_word_frequency_diagnostics(x_data)
-
-save_file = os.path.expanduser(private_consts.SAVE_DIR)+"feature_data.pickle"
-pickle.dump( (x_data, t_data) , open( save_file, "wb" ) )
+print "Saving",len(examples),"examples..."
+save_data(food_vocabulary, examples)
 
 f = open(os.path.expanduser(private_consts.SAVE_DIR)+"token_list.txt", 'w')
 f.write("\n".join(food_vocabulary))

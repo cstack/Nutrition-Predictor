@@ -7,11 +7,13 @@ for later processing
 from nutritionix import Nutritionix
 import private_consts
 
+import re
 import pickle
 import os
 import sys
 
 ITEMS_PER_API_CALL = 50
+FILE_PATTERN = re.compile('\w*_\d_\d.pickle')
 
 def download(examples_to_download, save_dir):
   save_file = os.path.expanduser(save_dir)+"raw_data.pickle"
@@ -43,8 +45,22 @@ def download(examples_to_download, save_dir):
   pickle.dump( items, open( save_file, "wb" ) )
 
 if __name__ == "__main__":
+  usage_error = "\nUsage: python download_data.py 1000 # Download 1000 " +
+          "examples, or\n" +
+          "python download_data.py raw_data_0_100.pickle 1000 # Download 100 " +
+          "examples and append them to raw_data_0_100.pickle, forming a new file" +
+          " raw_data_0_200.pickle"
+  
   if len(sys.argv) < 2:
-    print "Usage: python download_data.py 1000 # Download 1000 examples"
+    print usage_error
     exit(1)
-  num_to_download = int(sys.argv[1])
-  download(num_to_download, private_consts.SAVE_DIR)
+
+  num_to_download = 0
+  if (FILE_PATTERN.match(sys.argv[1])):
+    if len(sys.argv) != 3:
+      print usage_error
+      exit(1)
+    num_to_download = int(sys.argv[2])
+  else:
+    num_to_download = int(sys.argv[1])
+    download(num_to_download, private_consts.SAVE_DIR)
