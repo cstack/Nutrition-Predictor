@@ -11,7 +11,7 @@ import string
 import pickle
 import os
 
-def process_item(raw_item, food_vocabulary, stop_words):
+def process_item(raw_item, stop_words):
   """
   Take an object downloaded from Nutritionix and turn it into an example.
   Return None if we could not process it.
@@ -24,6 +24,9 @@ def process_item(raw_item, food_vocabulary, stop_words):
     # Just skip items without a weight
     return
   cpg = calories * 1.0 / grams; # Calories per gram
+
+  if len(tokens) == 0:
+    return None
 
   return (tokens, cpg)
 
@@ -49,11 +52,18 @@ def extract_tokens(raw_item, stop_words):
 
     # Don't add it if it's a stop word.
     if raw_token in stop_words:
-      #if raw_token in dummy_set:
       continue
 
     tokens.add(stem(raw_token))
   return tokens
+
+def build_vocabulary(examples):
+  """Compile the set of words across all examples"""
+  vocabulary = set()
+  for item in raw:
+    vocabulary = vocabulary.union(extract_tokens(item, stop_words))
+  return sorted(vocabulary)
+
 
 print "Loading saved api data..."
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
@@ -63,22 +73,19 @@ raw = pickle.load( open( raw_file, "rb" ) )
 stopwords_file = os.path.expanduser(private_consts.SAVE_DIR)+"stop_words.pickle"
 stop_words = pickle.load( open( stopwords_file, "rb" ) )
 
-print "Building vocabulary..."
-food_vocabulary = set()
-for item in raw:
-  food_vocabulary = food_vocabulary.union(extract_tokens(item, stop_words))
-
-food_vocabulary = sorted(food_vocabulary)
-print food_vocabulary
-
 print "Processing examples..."
-examples = [nonNone for nonNone in [process_item(item, food_vocabulary, stop_words) for item in raw] if nonNone]
+examples = [nonNone for nonNone in [process_item(item, stop_words) for item in raw] if nonNone]
 
-print "Saving",len(examples),"examples..."
+num_examples = 10
+while num_examples < len(examples):
+  print "Saving",num_examples,"examples..."
+  save_data(build_vocabulary(examples[:num_examples]), examples[:num_examples])
+  num_examples *= 10
+print "Saving",len(examples),"examples"
+vocabulary = build_vocabulary(examples)
+save_data(vocabulary, examples)
 
-save_data(food_vocabulary, examples)
-
-f = open(os.path.expanduser(private_consts.SAVE_DIR)+"token_list.txt", 'w')
-f.write("\n".join(food_vocabulary))
+f = open(os.path.expanduser(private_consts.SAVE_DIR)+"human_readable_data.txt", 'w')
+f.write("\n".join([str(example[1])+", "+str(sorted(example[0])) for example in examples]))
 f.close()
 

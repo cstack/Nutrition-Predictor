@@ -4,11 +4,11 @@ import os
 import pickle
 
 def save_data(vocabulary, examples):
-  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.pickle"
+  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(len(examples))
   pickle.dump( {"vocabulary":vocabulary, "examples":examples} , open( save_file, "wb" ) )
 
-def load_data():
-  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.pickle"
+def load_data(num_examples = 100):
+  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(num_examples)
   uninflated_data = pickle.load( open( save_file, "rb" ) )
 
   vocabulary = uninflated_data["vocabulary"]

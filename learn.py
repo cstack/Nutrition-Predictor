@@ -4,7 +4,7 @@ Learn a linear regression model
 
 from sklearn import linear_model
 
-import os, pickle, numpy
+import os, pickle, numpy, sys
 import private_consts
 from load_save_data import load_data
 
@@ -33,15 +33,24 @@ def crossValidation(x,t):
   error = sum([i**2 for i in diff]) / len(p)
   return (m, error)
 
-print "Loading data..."
-(x,t) = load_data()
+def learn(num_examples=100):
+  print "Loading {0} exmples...".format(num_examples)
+  (x,t) = load_data(num_examples)
 
-print "Learning..."
-(model, error) = crossValidation(x,t)
+  print "Learning..."
+  (model, error) = crossValidation(x,t)
 
-print "Error:", error
+  print "Error per example:", error
 
-save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
-pickle.dump( model , open( save_file, "wb" ) )
-print "Model saved in model.pickle"
+  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
+  pickle.dump( model , open( save_file, "wb" ) )
+  print "Model saved in model.pickle"
+
+if __name__ == "__main__":
+  if len(sys.argv) < 2:
+    num_examples = 100
+  else:
+    num_examples = int(sys.argv[1])
+
+  learn(num_examples=num_examples)
 
