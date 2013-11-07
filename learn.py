@@ -7,6 +7,7 @@ from sklearn import linear_model
 import os, pickle, numpy, sys
 import private_consts
 from load_save_data import load_data
+from utilities import pretty_print_predictions
 
 def linearRegression(x, t):
   """Peform linear regression,
@@ -28,6 +29,7 @@ def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, nu
   weights = 'uniform'
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
+  pretty_print_predictions(x_test, t_test, t_out, num_examples)
   return computeError(t_out, t_test)  
 
 def computeError(t_out, t_test):
@@ -37,7 +39,6 @@ def computeError(t_out, t_test):
 
 def learn(num_examples=100):
   print "Loading {0} exmples...".format(num_examples)
-  (x,t) = load_data(num_examples)
 
   print "Learning Linear Regression..."
   (model, error) = crossValidationLinearRegression(num_examples)

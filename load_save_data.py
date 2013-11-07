@@ -21,10 +21,10 @@ def load_data(num_examples = 100):
       tokens_list[vocabulary.index(token)] = 1
     x.append(tokens_list)
 
-  return (x,t)
+  return (x,t, vocabulary)
 
 def load_and_split_data(num_examples = 100, percent_train = 0.8)
-  (x, t) = load_data(num_examples)
+  (x, t, v) = load_data(num_examples)
   num_train = int(num_examples*percent_train)
 
   x_train = x[:num_train]
