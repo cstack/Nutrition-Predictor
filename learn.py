@@ -33,6 +33,15 @@ def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, nu
   pretty_print_predictions(x_test, t_test, t_out, num_examples)
   return computeError(t_out, t_test)
 
+def crossValidationRidgeRegression(num_examples = 100):
+  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
+  clf = linear_model.RidgeCV(alphas=[0.1, 1.0, 10.0])
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  pretty_print_predictions(x_test, t_test, p, num_examples)
+  error = computeError(p, t_test)
+  return error
+
 def computeError(t_out, t_test):
   diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
   error = sum([i**2 for i in diff]) / len(t_out)
@@ -43,17 +52,15 @@ def learn(num_examples=100):
 
   print "Learning Linear Regression..."
   (model, error) = crossValidationLinearRegression(num_examples)
-
   print "Linear Regression Mean Squared Error:", error
 
   print "Learing K-Nearest Neighbors..."
   error = crossValidationKNearestNeighbors(num_examples)
-
   print "K-Nearest Neighbors Error:", error
 
-  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
-  pickle.dump( model , open( save_file, "wb" ) )
-  print "Model saved in model.pickle"
+  print "Learing Ridge Regression..."
+  error = crossValidationRidgeRegression(num_examples)
+  print "Ridge Regression Error:", error
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
