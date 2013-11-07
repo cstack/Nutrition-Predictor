@@ -26,27 +26,29 @@ def crossValidationLinearRegression(num_examples = 100, percent_train = 0.8):
   return (m, error)
 
 def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, num_neighbors = 5):
-  
+
   min_error = 1000
-  for i in range(1, 10+1)
+  for i in range(5, 15+1):
     ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
     weights = 'uniform'
-    knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
+    knn = neighbors.KNeighborsRegressor(i, weights)
     t_out = knn.fit(x_train, t_train).predict(x_test)
     error = computeError(t_out, t_test)
-    if (error < min_error)
+    if (error < min_error):
       min_error = error
-      best_fit = (x_test, t_test, t_out)
+      best_fit = (x_test, t_test, t_out, i)
 
   pretty_print_predictions(best_fit[0], best_fit[1], best_fit[2], num_examples)
+  print "Best number of neighbors:",best_fit[3]
   return computeError(best_fit[2], best_fit[1])
 
 def crossValidationRidgeRegression(num_examples = 100):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
-  clf = linear_model.RidgeCV(alphas=[0.1, 1.0, 10.0])
+  clf = linear_model.RidgeCV(alphas=[0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100])
   clf.fit(x_train, t_train)
   p = clf.predict(x_test)
   pretty_print_predictions(x_test, t_test, p, num_examples)
+  print "Regularization term:",clf.alpha_
   error = computeError(p, t_test)
   return error
 
@@ -58,13 +60,13 @@ def computeError(t_out, t_test):
 def learn(num_examples=100):
   print "Loading {0} exmples...".format(num_examples)
 
-  print "Learning Linear Regression..."
-  (model, error) = crossValidationLinearRegression(num_examples)
-  print "Linear Regression Mean Squared Error:", error
+  #print "Learning Linear Regression..."
+  #(model, error) = crossValidationLinearRegression(num_examples)
+  #print "Linear Regression Mean Squared Error:", error
 
-  print "Learing K-Nearest Neighbors..."
-  error = crossValidationKNearestNeighbors(num_examples)
-  print "K-Nearest Neighbors Error:", error
+  #print "Learing K-Nearest Neighbors..."
+  #error = crossValidationKNearestNeighbors(num_examples)
+  #print "K-Nearest Neighbors Error:", error
 
   print "Learing Ridge Regression..."
   error = crossValidationRidgeRegression(num_examples)
