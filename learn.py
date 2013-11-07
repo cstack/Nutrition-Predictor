@@ -16,31 +16,36 @@ def linearRegression(x, t):
   clf.fit (x, t)
   return clf
 
-def predict(x, m):
-  """Use learned model m to predict t values for x"""
-  return m.predict(x)
-
-def crossValidation(x,t):
-  num_examples = len(x)
-  num_train = int(num_examples*0.8)
-  x_train = x[:num_train]
-  x_test = x[num_train:]
-  t_train = t[:num_train]
-  t_test = t[num_train:]
+def crossValidationLinearRegression(num_examples = 100, percent_train = 0.8):
+  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
   m = linearRegression(x_train, t_train)
-  p = predict(x_test, m)
-  diff = [p[i] - t_test[i] for i in range(len(p))]
-  error = sum([i**2 for i in diff]) / len(p)
+  p = m.predict(x)
+  error = computeError(p, t_test)
   return (m, error)
+
+def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, num_neighbors = 5):
+  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
+  weights = 'uniform'
+  knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
+  t_out = knn.fit(x_train, t_train).predict(x_test)
+  return computeError(t_out, t_test)  
+
+def computeError(t_out, t_test):
+  diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
+  error = sum([i**2 for i in diff]) / len(t_out)
+  return error
 
 def learn(num_examples=100):
   print "Loading {0} exmples...".format(num_examples)
   (x,t) = load_data(num_examples)
 
-  print "Learning..."
-  (model, error) = crossValidation(x,t)
+  print "Learning Linear Regression..."
+  (model, error) = crossValidationLinearRegression(num_examples)
 
   print "Error per example:", error
+  
+  print "Learing K-Nearest Neighbors..."
+  error = crossValidationKNearestNeighbors(num_examples)
 
   save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
   pickle.dump( model , open( save_file, "wb" ) )
