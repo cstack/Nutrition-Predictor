@@ -1,7 +1,6 @@
 import private_consts
 
-import os
-import pickle
+import os, pickle, random
 
 def save_data(vocabulary, examples):
   save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(len(examples))
@@ -23,13 +22,15 @@ def load_data(num_examples = 100):
 
   return (x,t, vocabulary)
 
-def load_and_split_data(num_examples = 100, percent_train = 0.8)
+def load_and_split_data(num_examples = 100, percent_train = 0.8):
   (x, t, v) = load_data(num_examples)
   num_train = int(num_examples*percent_train)
 
-  x_train = x[:num_train]
-  x_test = x[num_train:]
-  t_train = t[:num_train]
-  t_test = t[num_train:]
+  train_indices = random.sample(range(num_examples), num_train)
+
+  x_train = [x[i] for i in train_indices]
+  x_test = [x[i] for i in range(num_examples) if i not in train_indices]
+  t_train = [t[i] for i in train_indices]
+  t_test = [t[i] for i in range(num_examples) if i not in train_indices]
 
   return ((x_train, t_train), (x_test, t_test))
