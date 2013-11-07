@@ -23,7 +23,7 @@ def load_data(num_examples = 100):
 
   return (x,t)
 
-def load_and_split_data(num_examples = 100, percent_train = 0.8)
+def load_and_split_data(num_examples = 100, percent_train = 0.8):
   (x, t) = load_data(num_examples)
   num_train = int(num_examples*percent_train)
 

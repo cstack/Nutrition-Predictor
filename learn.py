@@ -2,11 +2,11 @@
 Learn a linear regression model
 """
 
-from sklearn import linear_model
+from sklearn import linear_model, neighbors
 
 import os, pickle, numpy, sys
 import private_consts
-from load_save_data import load_data
+from load_save_data import load_data, load_and_split_data
 
 def linearRegression(x, t):
   """Peform linear regression,
@@ -19,7 +19,7 @@ def linearRegression(x, t):
 def crossValidationLinearRegression(num_examples = 100, percent_train = 0.8):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
   m = linearRegression(x_train, t_train)
-  p = m.predict(x)
+  p = m.predict(x_test)
   error = computeError(p, t_test)
   return (m, error)
 
@@ -28,7 +28,7 @@ def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, nu
   weights = 'uniform'
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
-  return computeError(t_out, t_test)  
+  return computeError(t_out, t_test)
 
 def computeError(t_out, t_test):
   diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
@@ -42,10 +42,12 @@ def learn(num_examples=100):
   print "Learning Linear Regression..."
   (model, error) = crossValidationLinearRegression(num_examples)
 
-  print "Error per example:", error
-  
+  print "Linear Regression Mean Squared Error:", error
+
   print "Learing K-Nearest Neighbors..."
   error = crossValidationKNearestNeighbors(num_examples)
+
+  print "K-Nearest Neighbors Error:", error
 
   save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
   pickle.dump( model , open( save_file, "wb" ) )
