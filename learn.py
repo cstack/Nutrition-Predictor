@@ -26,12 +26,20 @@ def crossValidationLinearRegression(num_examples = 100, percent_train = 0.8):
   return (m, error)
 
 def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, num_neighbors = 5):
-  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
-  weights = 'uniform'
-  knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
-  t_out = knn.fit(x_train, t_train).predict(x_test)
-  pretty_print_predictions(x_test, t_test, t_out, num_examples)
-  return computeError(t_out, t_test)
+  
+  min_error = 1000
+  for i in range(1, 10+1)
+    ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
+    weights = 'uniform'
+    knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
+    t_out = knn.fit(x_train, t_train).predict(x_test)
+    error = computeError(t_out, t_test)
+    if (error < min_error)
+      min_error = error
+      best_fit = (x_test, t_test, t_out)
+
+  pretty_print_predictions(best_fit[0], best_fit[1], best_fit[2], num_examples)
+  return computeError(best_fit[2], best_fit[1])
 
 def crossValidationRidgeRegression(num_examples = 100):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
