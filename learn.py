@@ -21,6 +21,7 @@ def crossValidationLinearRegression(num_examples = 100, percent_train = 0.8):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
   m = linearRegression(x_train, t_train)
   p = m.predict(x_test)
+  pretty_print_predictions(x_test, t_test, p, num_examples)
   error = computeError(p, t_test)
   return (m, error)
 
@@ -30,7 +31,7 @@ def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, nu
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   pretty_print_predictions(x_test, t_test, t_out, num_examples)
-  return computeError(t_out, t_test)  
+  return computeError(t_out, t_test)
 
 def computeError(t_out, t_test):
   diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
