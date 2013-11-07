@@ -2,7 +2,7 @@
 Learn a linear regression model
 """
 
-from sklearn import linear_model, neighbors
+from sklearn import linear_model, neighbors, tree
 
 import os, pickle, numpy, sys
 import private_consts
@@ -52,6 +52,15 @@ def crossValidationRidgeRegression(num_examples = 100):
   error = computeError(p, t_test)
   return error
 
+def crossValidationNaiveBayes(num_examples = 100):
+  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
+  clf = tree.DecisionTreeRegressor()
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  pretty_print_predictions(x_test, t_test, p, num_examples)
+  error = computeError(p, t_test)
+  return error
+
 def computeError(t_out, t_test):
   diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
   error = sum([i**2 for i in diff]) / len(t_out)
@@ -68,9 +77,13 @@ def learn(num_examples=100):
   #error = crossValidationKNearestNeighbors(num_examples)
   #print "K-Nearest Neighbors Error:", error
 
-  print "Learing Ridge Regression..."
-  error = crossValidationRidgeRegression(num_examples)
-  print "Ridge Regression Error:", error
+  #print "Learing Ridge Regression..."
+  #error = crossValidationRidgeRegression(num_examples)
+  #print "Ridge Regression Error:", error
+
+  print "Learning Naive Bayes Regression..."
+  error = crossValidationNaiveBayes(num_examples)
+  print "Naive Bayes Error:", error
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
