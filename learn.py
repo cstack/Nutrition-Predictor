@@ -54,7 +54,7 @@ def RidgeRegression(num_examples = 100):
     "Regularization term": clf.alpha_
   }
 
-def NaiveBayes(num_examples = 100):
+def DescisionTreeRegression(num_examples = 100):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
   clf = tree.DecisionTreeRegressor()
   clf.fit(x_train, t_train)
@@ -81,7 +81,7 @@ def learnAllUnlearnedModels():
 
   needToSave = False
   num_examples = [10, 100, 1000]
-  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, NaiveBayes]
+  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression]
 
   for fn in algorithms:
     algorithm = fn.__name__
