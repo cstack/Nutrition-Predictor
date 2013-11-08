@@ -8,41 +8,40 @@ import os, pickle, numpy, sys
 import private_consts
 from load_save_data import load_data, load_and_split_data
 from utilities import pretty_print_predictions
+import json
 
-def linearRegression(x, t):
-  """Peform linear regression,
-  return learned model m"""
-  clf = linear_model.LinearRegression()
-  num_examples = len(x)
-  clf.fit (x, t)
-  return clf
-
-def crossValidationLinearRegression(num_examples = 100, percent_train = 0.8):
+def LinearRegression(num_examples = 100, percent_train = 0.8):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
-  m = linearRegression(x_train, t_train)
+  m = linear_model.LinearRegression()
+  m.fit (x_train, t_train)
   p = m.predict(x_test)
   pretty_print_predictions(x_test, t_test, p, num_examples)
   error = computeError(p, t_test)
-  return (m, error)
+  return {
+    "error": error,
+    "average weight": sum(m.coef_)/len(m.coef_)
+  }
 
-def crossValidationKNearestNeighbors(num_examples = 100, percent_train = 0.8, num_neighbors = 5):
-
+def KNearestNeighbors(num_examples = 100, percent_train = 0.8):
   min_error = 1000
-  for i in range(5, 15+1):
+  for k in range(5, 15+1):
     ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
     weights = 'uniform'
-    knn = neighbors.KNeighborsRegressor(i, weights)
+    knn = neighbors.KNeighborsRegressor(k, weights)
     t_out = knn.fit(x_train, t_train).predict(x_test)
     error = computeError(t_out, t_test)
     if (error < min_error):
       min_error = error
-      best_fit = (x_test, t_test, t_out, i)
+      best_fit = (x_test, t_test, t_out, k)
 
   pretty_print_predictions(best_fit[0], best_fit[1], best_fit[2], num_examples)
   print "Best number of neighbors:",best_fit[3]
-  return computeError(best_fit[2], best_fit[1])
+  return {
+    "error": computeError(best_fit[2], best_fit[1]),
+    "best k": best_fit[3]
+  }
 
-def crossValidationRidgeRegression(num_examples = 100):
+def RidgeRegression(num_examples = 100):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
   clf = linear_model.RidgeCV(alphas=[0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100])
   clf.fit(x_train, t_train)
@@ -50,40 +49,59 @@ def crossValidationRidgeRegression(num_examples = 100):
   pretty_print_predictions(x_test, t_test, p, num_examples)
   print "Regularization term:",clf.alpha_
   error = computeError(p, t_test)
-  return error
+  return {
+    "error": error,
+    "Regularization term": clf.alpha_
+  }
 
-def crossValidationNaiveBayes(num_examples = 100):
+def NaiveBayes(num_examples = 100):
   ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
   clf = tree.DecisionTreeRegressor()
   clf.fit(x_train, t_train)
   p = clf.predict(x_test)
   pretty_print_predictions(x_test, t_test, p, num_examples)
   error = computeError(p, t_test)
-  return error
+  return {
+    "error": error
+  }
 
 def computeError(t_out, t_test):
   diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
   error = sum([i**2 for i in diff]) / len(t_out)
   return error
 
-def learn(num_examples=100):
-  print "Loading {0} exmples...".format(num_examples)
+def learnAllUnlearnedModels():
+  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results.json"
+  try:
+    with open(results_file) as f:
+        results = json.loads(f.read())
+  except:
+    print "No results file. Starting from scratch."
+    results = {}
 
-  #print "Learning Linear Regression..."
-  #(model, error) = crossValidationLinearRegression(num_examples)
-  #print "Linear Regression Mean Squared Error:", error
+  needToSave = False
+  num_examples = [10, 100, 1000]
+  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, NaiveBayes]
 
-  #print "Learing K-Nearest Neighbors..."
-  #error = crossValidationKNearestNeighbors(num_examples)
-  #print "K-Nearest Neighbors Error:", error
+  for fn in algorithms:
+    algorithm = fn.__name__
+    if algorithm not in results:
+      results[algorithm] = {}
+    for n in num_examples:
+      if "{0} examples".format(n) not in results[algorithm]:
+        print "Running {0} on {1} examples...".format(algorithm, n)
+        result = fn(n)
+        results[algorithm]["{0} examples".format(n)] = result
+        needToSave = True
 
-  #print "Learing Ridge Regression..."
-  #error = crossValidationRidgeRegression(num_examples)
-  #print "Ridge Regression Error:", error
+  if needToSave:
+    print "Saving results to {0}".format(results_file)
+    f = open(results_file, "w")
+    f.write(json.dumps(results, indent=4, sort_keys=True))
+    f.close()
 
-  print "Learning Naive Bayes Regression..."
-  error = crossValidationNaiveBayes(num_examples)
-  print "Naive Bayes Error:", error
+  print "All models learned"
+  print "See {0}".format(results_file)
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
@@ -91,5 +109,4 @@ if __name__ == "__main__":
   else:
     num_examples = int(sys.argv[1])
 
-  learn(num_examples=num_examples)
-
+  learnAllUnlearnedModels()
