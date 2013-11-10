@@ -2,16 +2,15 @@
 Learn a linear regression model
 """
 
-from sklearn import linear_model, neighbors, tree
+from sklearn import cross_validation, linear_model, neighbors, tree
 
-import os, pickle, numpy, sys
+import os, pickle, numpy, sys, random
 import private_consts
 from load_save_data import load_data, load_and_split_data
 from utilities import pretty_print_predictions
 import json
 
-def LinearRegression(num_examples = 100, percent_train = 0.8):
-  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
+def LinearRegression(x_train, t_train, x_test, t_test):
   m = linear_model.LinearRegression()
   m.fit (x_train, t_train)
   p = m.predict(x_test)
@@ -22,10 +21,9 @@ def LinearRegression(num_examples = 100, percent_train = 0.8):
     "average weight": sum(m.coef_)/len(m.coef_)
   }
 
-def KNearestNeighbors(num_examples = 100, percent_train = 0.8):
-  min_error = 1000
+def KNearestNeighbors(x_train, t_train, x_test, t_test):
+  min_error = float("inf")
   for k in range(5, 15+1):
-    ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, percent_train)
     weights = 'uniform'
     knn = neighbors.KNeighborsRegressor(k, weights)
     t_out = knn.fit(x_train, t_train).predict(x_test)
@@ -41,9 +39,8 @@ def KNearestNeighbors(num_examples = 100, percent_train = 0.8):
     "best k": best_fit[3]
   }
 
-def RidgeRegression(num_examples = 100):
-  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
-  clf = linear_model.RidgeCV(alphas=[0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100])
+def RidgeRegression(x_train, t_train, x_test, t_test):
+  clf = linear_model.RidgeCV(alphas=[10**(-i) for i in range(20)])
   clf.fit(x_train, t_train)
   p = clf.predict(x_test)
   pretty_print_predictions(x_test, t_test, p, num_examples)
@@ -54,8 +51,7 @@ def RidgeRegression(num_examples = 100):
     "Regularization term": clf.alpha_
   }
 
-def DescisionTreeRegression(num_examples = 100):
-  ((x_train, t_train), (x_test, t_test)) = load_and_split_data(num_examples, 0.8)
+def DescisionTreeRegression(x_train, t_train, x_test, t_test):
   clf = tree.DecisionTreeRegressor()
   clf.fit(x_train, t_train)
   p = clf.predict(x_test)
@@ -70,6 +66,20 @@ def computeError(t_out, t_test):
   error = sum([i**2 for i in diff]) / len(t_out)
   return error
 
+def shuffle_data(x,t):
+  order = range(len(x))
+  random.shuffle(order)
+  x_shuffled = [x[i] for i in order]
+  t_shuffled = [t[i] for i in order]
+  return (x_shuffled, t_shuffled)
+
+def mergeResults(results):
+  merged = {}
+  for key in results[0]:
+    merged[key] = [result[key] for result in results]
+    merged["average "+key] = float(sum(merged[key]))/len(merged[key])
+  return merged
+
 def learnAllUnlearnedModels():
   results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results.json"
   try:
@@ -83,15 +93,26 @@ def learnAllUnlearnedModels():
   num_examples = [10, 100, 1000]
   algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression]
 
-  for fn in algorithms:
-    algorithm = fn.__name__
-    if algorithm not in results:
-      results[algorithm] = {}
-    for n in num_examples:
-      if "{0} examples".format(n) not in results[algorithm]:
+  for n in num_examples:
+    (x,t,vocabulary) = load_data(n)
+    (x,t) = shuffle_data(x,t)
+    for fn in algorithms:
+      algorithm = fn.__name__
+      if algorithm not in results:
+        results[algorithm] = {}
+      experiment_key = "{0} examples".format(n)
+      if experiment_key not in results[algorithm]:
         print "Running {0} on {1} examples...".format(algorithm, n)
-        result = fn(n)
-        results[algorithm]["{0} examples".format(n)] = result
+        kf = cross_validation.KFold(n, n_folds=5, indices=True)
+        k_results = []
+        for train, test in kf:
+          x_train = [x[i] for i in train]
+          t_train = [t[i] for i in train]
+          x_test = [x[i] for i in test]
+          t_test = [t[i] for i in test]
+          result = fn(x_train, t_train, x_test, t_test)
+          k_results.append(result)
+        results[algorithm][experiment_key] = mergeResults(k_results)
         needToSave = True
 
   if needToSave:
