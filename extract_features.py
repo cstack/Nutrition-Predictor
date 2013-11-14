@@ -20,9 +20,6 @@ def process_item(raw_item, stop_words):
 
   tokens = extract_tokens(raw_item, stop_words)
 
-  if len(tokens) == 0:
-    return
-
   calories = raw_item["nf_calories"]
   grams = raw_item["nf_serving_weight_grams"]
   cpg = calories * 1.0 / grams; # Calories per gram
