@@ -17,17 +17,18 @@ def process_item(raw_item, stop_words):
   Take an object downloaded from Nutritionix and turn it into an example.
   Return None if we could not process it.
   """
-  
-  tokens = extract_tokens(raw_item, stop_words)
-  
-  if len(tokens) == 0:
-    return
 
   calories = raw_item["nf_calories"]
   grams = raw_item["nf_serving_weight_grams"]
   cpg = calories * 1.0 / grams; # Calories per gram
 
-  if len(tokens) == 0:
+  tokens = extract_tokens(raw_item, stop_words)
+
+  # Get rid of items that have ridiculous CPG's or no features.
+  if len(tokens) == 0 or cpg > 10.0:
+    print('tokens are none, or cpg is bigger than 10')
+    print(tokens)
+    print(str(cpg))
     return None
 
   cpg = calories
@@ -63,7 +64,7 @@ def extract_tokens(raw_item, stop_words):
 
     # Don't add the token if it starts with a number.
     number_regex = re.compile('\w*\d+\w*')
-    if number_regex.match(raw_token)
+    if number_regex.match(raw_token):
       continue
 
     tokens.add(stem(raw_token))
