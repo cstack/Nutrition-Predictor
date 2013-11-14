@@ -86,8 +86,9 @@ def shuffle_data(x,t):
 def mergeResults(results):
   merged = {}
   for key in results[0]:
-    merged[key] = [result[key] for result in results]
-    merged["average "+key] = float(sum(merged[key]))/len(merged[key])
+    mean = sum([result[key] for result in results])/len(results)
+    stdev = (sum([(result[key] - mean)**2])/len(results))**0.5
+    merged[key] = "{0} +- {1}".format(mean, stdev)
   return merged
 
 def learnAllUnlearnedModels():
@@ -100,7 +101,8 @@ def learnAllUnlearnedModels():
     results = {}
 
   needToSave = False
-  num_examples = [10, 100, 1000]
+
+  num_examples = [10, 30, 100, 300]
   algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression, KNearestWithPCA]
 
   for n in num_examples:
