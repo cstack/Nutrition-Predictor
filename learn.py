@@ -3,12 +3,22 @@ Learn a linear regression model
 """
 
 from sklearn import cross_validation, linear_model, neighbors, tree
+from sklearn.decomposition import PCA
 
 import os, pickle, numpy, sys, random
 import private_consts
 from load_save_data import load_data, load_and_split_data
 from utilities import pretty_print_predictions
 import json
+
+def KNearestWithPCA(x_train, t_train, x_test, t_test, num_components=400):
+  pca = PCA(n_components=num_components)
+  new_x_train = pca.fit_transform(x_train, t_train)
+  new_x_test = pca.transform(x_test)
+  
+  results = KNearestNeighbors(new_x_train, t_train, new_x_test, t_test)
+  results['num_components'] = num_components
+  return results
 
 def LinearRegression(x_train, t_train, x_test, t_test):
   m = linear_model.LinearRegression()
@@ -91,7 +101,7 @@ def learnAllUnlearnedModels():
 
   needToSave = False
   num_examples = [10, 100, 1000]
-  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression]
+  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression, KNearestWithPCA]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
