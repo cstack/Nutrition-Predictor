@@ -11,6 +11,7 @@ import string
 import pickle
 import os
 import re # reg ex
+import sys
 
 def process_item(raw_item, stop_words):
   """
@@ -108,7 +109,10 @@ def build_vocabulary(examples):
 
 # Beginning of execution.
 print "Loading saved api data..."
+
 raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
+if len(sys.argv) == 2:
+  raw_file = os.path.expanduser(private_consts.SAVE_DIR) + sys.argv[1]
 
 raw = pickle.load( open( raw_file, "rb" ) )
 
