@@ -10,6 +10,7 @@ import string
 
 import pickle
 import os
+import re # reg ex
 
 def process_item(raw_item, stop_words):
   """
@@ -60,7 +61,8 @@ def extract_tokens(raw_item, stop_words):
       continue
 
     # Don't add the token if it starts with a number.
-    if raw_token[0].isdigit():
+    number_regex = re.compile('\w*\d+\w*')
+    if number_regex.match(raw_token)
       continue
 
     tokens.add(stem(raw_token))
