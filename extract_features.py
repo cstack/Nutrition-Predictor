@@ -17,9 +17,9 @@ def process_item(raw_item, stop_words):
   Take an object downloaded from Nutritionix and turn it into an example.
   Return None if we could not process it.
   """
-  
+
   tokens = extract_tokens(raw_item, stop_words)
-  
+
   if len(tokens) == 0:
     return
 
@@ -27,10 +27,13 @@ def process_item(raw_item, stop_words):
   grams = raw_item["nf_serving_weight_grams"]
   cpg = calories * 1.0 / grams; # Calories per gram
 
+  if (cpg > 10):
+    print "Ignoring outlier:",cpg,tokens
+    return None
+
   if len(tokens) == 0:
     return None
 
-  cpg = calories
   return (tokens, cpg)
 
 def extract_tokens(raw_item, stop_words):
@@ -56,14 +59,14 @@ def extract_tokens(raw_item, stop_words):
     # Don't add it if it's a stop word.
     if raw_token in stop_words:
       continue
-    
+
     # Don't add the token if it is empty.
     if len(raw_token) == 0:
       continue
 
     # Don't add the token if it starts with a number.
     number_regex = re.compile('\w*\d+\w*')
-    if number_regex.match(raw_token)
+    if number_regex.match(raw_token):
       continue
 
     tokens.add(stem(raw_token))
@@ -75,7 +78,7 @@ def print_word_frequency_diagnostics(examples, food_vocabulary):
   """
   if len(examples) == 0:
     return
-  
+
   word_freq = {}
   # Initialize dict with all the tokens and a count of 0.
   for token in food_vocabulary:
@@ -92,10 +95,10 @@ def print_word_frequency_diagnostics(examples, food_vocabulary):
     frequencies.add((word_freq[key], key))
 
   print sorted(frequencies)
-  
+
   print "There are " + str(len(examples)) + " examples"
   print "There are " + str(len(food_vocabulary)) + " vocab words"
-  
+
   return
 
 def build_vocabulary(examples):
@@ -118,11 +121,16 @@ stop_words = pickle.load( open( stopwords_file, "rb" ) )
 print "Processing examples..."
 examples = [nonNone for nonNone in [process_item(item, stop_words) for item in raw] if nonNone]
 
-num_examples = 10
-while num_examples < len(examples):
+data_sizes = []
+num = 10
+while num < len(examples):
+  data_sizes.append(num)
+  if (num*3) < len(examples):
+    data_sizes.append(num*3)
+  num *= 10
+for num_examples in data_sizes:
   print "Saving",num_examples,"examples..."
   save_data(build_vocabulary(examples[:num_examples]), examples[:num_examples])
-  num_examples *= 10
 print "Saving",len(examples),"examples"
 vocabulary = build_vocabulary(examples)
 
