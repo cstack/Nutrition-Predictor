@@ -2,49 +2,127 @@
 Learn a linear regression model
 """
 
-from sklearn import linear_model
+from sklearn import cross_validation, linear_model, neighbors, tree
 
-import os, pickle, numpy, sys
+import os, pickle, numpy, sys, random
 import private_consts
-from load_save_data import load_data
+from load_save_data import load_data, load_and_split_data
+from utilities import pretty_print_predictions
+import json
 
-def linearRegression(x, t):
-  """Peform linear regression,
-  return learned model m"""
-  clf = linear_model.LinearRegression()
-  num_examples = len(x)
-  clf.fit (x, t)
-  return clf
+def LinearRegression(x_train, t_train, x_test, t_test):
+  m = linear_model.LinearRegression()
+  m.fit (x_train, t_train)
+  p = m.predict(x_test)
+  pretty_print_predictions(x_test, t_test, p, num_examples)
+  error = computeError(p, t_test)
+  return {
+    "error": error,
+    "average weight": sum(m.coef_)/len(m.coef_)
+  }
 
-def predict(x, m):
-  """Use learned model m to predict t values for x"""
-  return m.predict(x)
+def KNearestNeighbors(x_train, t_train, x_test, t_test):
+  min_error = float("inf")
+  for k in range(5, 15+1):
+    weights = 'uniform'
+    knn = neighbors.KNeighborsRegressor(k, weights)
+    t_out = knn.fit(x_train, t_train).predict(x_test)
+    error = computeError(t_out, t_test)
+    if (error < min_error):
+      min_error = error
+      best_fit = (x_test, t_test, t_out, k)
 
-def crossValidation(x,t):
-  num_examples = len(x)
-  num_train = int(num_examples*0.8)
-  x_train = x[:num_train]
-  x_test = x[num_train:]
-  t_train = t[:num_train]
-  t_test = t[num_train:]
-  m = linearRegression(x_train, t_train)
-  p = predict(x_test, m)
-  diff = [p[i] - t_test[i] for i in range(len(p))]
-  error = sum([i**2 for i in diff]) / len(p)
-  return (m, error)
+  pretty_print_predictions(best_fit[0], best_fit[1], best_fit[2], num_examples)
+  print "Best number of neighbors:",best_fit[3]
+  return {
+    "error": computeError(best_fit[2], best_fit[1]),
+    "best k": best_fit[3]
+  }
 
-def learn(num_examples=100):
-  print "Loading {0} exmples...".format(num_examples)
-  (x,t) = load_data(num_examples)
+def RidgeRegression(x_train, t_train, x_test, t_test):
+  clf = linear_model.RidgeCV(alphas=[10**(-i) for i in range(20)])
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  pretty_print_predictions(x_test, t_test, p, num_examples)
+  print "Regularization term:",clf.alpha_
+  error = computeError(p, t_test)
+  return {
+    "error": error,
+    "Regularization term": clf.alpha_
+  }
 
-  print "Learning..."
-  (model, error) = crossValidation(x,t)
+def DescisionTreeRegression(x_train, t_train, x_test, t_test):
+  clf = tree.DecisionTreeRegressor()
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  pretty_print_predictions(x_test, t_test, p, num_examples)
+  error = computeError(p, t_test)
+  return {
+    "error": error
+  }
 
-  print "Error per example:", error
+def computeError(t_out, t_test):
+  diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
+  error = sum([i**2 for i in diff]) / len(t_out)
+  return error
 
-  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"model.pickle"
-  pickle.dump( model , open( save_file, "wb" ) )
-  print "Model saved in model.pickle"
+def shuffle_data(x,t):
+  order = range(len(x))
+  random.shuffle(order)
+  x_shuffled = [x[i] for i in order]
+  t_shuffled = [t[i] for i in order]
+  return (x_shuffled, t_shuffled)
+
+def mergeResults(results):
+  merged = {}
+  for key in results[0]:
+    merged[key] = [result[key] for result in results]
+    merged["average "+key] = float(sum(merged[key]))/len(merged[key])
+  return merged
+
+def learnAllUnlearnedModels():
+  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results.json"
+  try:
+    with open(results_file) as f:
+        results = json.loads(f.read())
+  except:
+    print "No results file. Starting from scratch."
+    results = {}
+
+  needToSave = False
+  num_examples = [10, 100, 1000]
+  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression]
+
+  for n in num_examples:
+    (x,t,vocabulary) = load_data(n)
+    (x,t) = shuffle_data(x,t)
+    for fn in algorithms:
+      algorithm = fn.__name__
+      if algorithm not in results:
+        results[algorithm] = {}
+      experiment_key = "{0} examples".format(n)
+      if experiment_key not in results[algorithm]:
+        print "Running {0} on {1} examples...".format(algorithm, n)
+        kf = cross_validation.KFold(n, n_folds=5, indices=True)
+        k_results = []
+        for train, test in kf:
+          x_train = [x[i] for i in train]
+          t_train = [t[i] for i in train]
+          x_test = [x[i] for i in test]
+          t_test = [t[i] for i in test]
+          result = fn(x_train, t_train, x_test, t_test)
+          k_results.append(result)
+        results[algorithm][experiment_key] = mergeResults(k_results)
+        needToSave = True
+
+  if needToSave:
+    print "Saving results to {0}".format(results_file)
+    f = open(results_file, "w")
+    f.write(json.dumps(results, indent=4, sort_keys=True))
+    f.close()
+
+  print "All models learned"
+  print "See {0}".format(results_file)
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
@@ -52,5 +130,4 @@ if __name__ == "__main__":
   else:
     num_examples = int(sys.argv[1])
 
-  learn(num_examples=num_examples)
-
+  learnAllUnlearnedModels()

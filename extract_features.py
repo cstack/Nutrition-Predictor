@@ -30,6 +30,7 @@ def process_item(raw_item, stop_words):
   if len(tokens) == 0:
     return None
 
+  cpg = calories
   return (tokens, cpg)
 
 def extract_tokens(raw_item, stop_words):
