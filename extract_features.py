@@ -121,6 +121,7 @@ stop_words = pickle.load( open( stopwords_file, "rb" ) )
 
 print "Processing examples..."
 examples = [nonNone for nonNone in [process_item(item, stop_words) for item in raw] if nonNone]
+vocabulary = build_vocabulary(examples)
 
 data_sizes = []
 num = 10
@@ -131,13 +132,11 @@ while num < len(examples):
   num *= 10
 for num_examples in data_sizes:
   print "Saving",num_examples,"examples..."
-  save_data(build_vocabulary(examples[:num_examples]), examples[:num_examples])
+  save_data(vocabulary, examples[:num_examples])
 print "Saving",len(examples),"examples"
-vocabulary = build_vocabulary(examples)
+save_data(vocabulary, examples)
 
 print_word_frequency_diagnostics(examples, vocabulary)
-
-save_data(vocabulary, examples)
 
 f = open(os.path.expanduser(private_consts.SAVE_DIR)+"human_readable_data.txt", 'w')
 f.write("\n".join([str(example[1])+", "+str(sorted(example[0])) for example in examples]))
