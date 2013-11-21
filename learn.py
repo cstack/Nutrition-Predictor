@@ -2,10 +2,12 @@
 Learn a linear regression model
 """
 
-from sklearn import cross_validation, linear_model, neighbors, tree
+from sklearn import cross_validation, linear_model, neighbors, tree, gaussian_process
+from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor, RandomForestRegressor
 from sklearn.decomposition import PCA
+from sklearn.svm import SVR
 
-import os, pickle, numpy, sys, random
+import os, pickle, numpy, sys, random, time
 import private_consts
 from load_save_data import load_data, load_and_split_data
 from utilities import pretty_print_predictions
@@ -15,7 +17,7 @@ def KNearestWithPCA(x_train, t_train, x_test, t_test, num_components=400):
   pca = PCA(n_components=num_components)
   new_x_train = pca.fit_transform(x_train, t_train)
   new_x_test = pca.transform(x_test)
-  
+
   results = KNearestNeighbors(new_x_train, t_train, new_x_test, t_test)
   results['num_components'] = num_components
   return results
@@ -24,7 +26,6 @@ def LinearRegression(x_train, t_train, x_test, t_test):
   m = linear_model.LinearRegression()
   m.fit (x_train, t_train)
   p = m.predict(x_test)
-  pretty_print_predictions(x_test, t_test, p, num_examples)
   error = computeError(p, t_test)
   return {
     "error": error,
@@ -42,8 +43,6 @@ def KNearestNeighbors(x_train, t_train, x_test, t_test):
       min_error = error
       best_fit = (x_test, t_test, t_out, k)
 
-  pretty_print_predictions(best_fit[0], best_fit[1], best_fit[2], num_examples)
-  print "Best number of neighbors:",best_fit[3]
   return {
     "error": computeError(best_fit[2], best_fit[1]),
     "best k": best_fit[3]
@@ -53,8 +52,6 @@ def RidgeRegression(x_train, t_train, x_test, t_test):
   clf = linear_model.RidgeCV(alphas=[10**(-i) for i in range(20)])
   clf.fit(x_train, t_train)
   p = clf.predict(x_test)
-  pretty_print_predictions(x_test, t_test, p, num_examples)
-  print "Regularization term:",clf.alpha_
   error = computeError(p, t_test)
   return {
     "error": error,
@@ -65,10 +62,57 @@ def DescisionTreeRegression(x_train, t_train, x_test, t_test):
   clf = tree.DecisionTreeRegressor()
   clf.fit(x_train, t_train)
   p = clf.predict(x_test)
-  pretty_print_predictions(x_test, t_test, p, num_examples)
   error = computeError(p, t_test)
   return {
     "error": error
+  }
+
+def BayesianRidgeRegression(x_train, t_train, x_test, t_test):
+  clf = linear_model.BayesianRidge()
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  error = computeError(p, t_test)
+  return {
+    "error": error,
+    "average weight": sum(clf.coef_)/len(clf.coef_)
+  }
+
+def GaussianProcessRegression(x_train, t_train, x_test, t_test):
+  x_train, t_train = deDupe(x_train, t_train)
+  gp = gaussian_process.GaussianProcess(theta0=1e-2, thetaL=1e-4, thetaU=1e-1)
+  gp.fit(x_train, t_train)
+  pred, sigma2_pred = gp.predict(x_test, eval_MSE=True)
+  error = computeError(pred, t_test)
+  return {
+    "error": error,
+    "sigma2": sum(sigma2_pred.tolist())/len(sigma2_pred.tolist())
+  }
+
+def AdaBoostRegression(x_train, t_train, x_test, t_test):
+  clf = AdaBoostRegressor()
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  error = computeError(p, t_test)
+  return {
+    "error": error,
+  }
+
+def GradientBoostingRegression(x_train, t_train, x_test, t_test):
+  clf = GradientBoostingRegressor()
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  error = computeError(p, t_test)
+  return {
+    "error": error,
+  }
+
+def SupportVectorRegression(x_train, t_train, x_test, t_test):
+  clf = SVR(C=1.0, epsilon=0.2)
+  clf.fit(x_train, t_train)
+  p = clf.predict(x_test)
+  error = computeError(p, t_test)
+  return {
+    "error": error,
   }
 
 def computeError(t_out, t_test):
@@ -83,12 +127,20 @@ def shuffle_data(x,t):
   t_shuffled = [t[i] for i in order]
   return (x_shuffled, t_shuffled)
 
+def deDupe(x,t):
+  """Ensure no x's repeat"""
+  d = {}
+  indices = [d.setdefault(str(x[i]), i) for i in range(len(x)) if str(x[i]) not in d]
+  new_x = [x[i] for i in indices]
+  new_t = [t[i] for i in indices]
+  return new_x, new_t
+
 def mergeResults(results):
   merged = {}
   for key in results[0]:
     mean = sum([result[key] for result in results])/len(results)
     stdev = (sum([(result[key] - mean)**2])/len(results))**0.5
-    merged[key] = "{0} +- {1}".format(mean, stdev)
+    merged[key] = "{0} +- {1}".format("%.3f" % mean, "%.3f" % stdev)
   return merged
 
 def learnAllUnlearnedModels():
@@ -103,7 +155,9 @@ def learnAllUnlearnedModels():
   needToSave = False
 
   num_examples = [10, 30, 100, 300]
-  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression, KNearestWithPCA]
+  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression,
+    KNearestWithPCA, BayesianRidgeRegression, GaussianProcessRegression, AdaBoostRegression,
+    GradientBoostingRegression, SupportVectorRegression]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
@@ -122,7 +176,10 @@ def learnAllUnlearnedModels():
           t_train = [t[i] for i in train]
           x_test = [x[i] for i in test]
           t_test = [t[i] for i in test]
+          start = time.time()
           result = fn(x_train, t_train, x_test, t_test)
+          finish = time.time()
+          result["time"] = finish - start
           k_results.append(result)
         results[algorithm][experiment_key] = mergeResults(k_results)
         needToSave = True
