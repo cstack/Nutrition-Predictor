@@ -3,7 +3,7 @@ Take food items previously downloaded and process them into
 usable examples.
 """
 
-import private_consts
+import private_consts, utilities
 from load_save_data import save_data
 from stemming.porter2 import stem
 import string
@@ -109,7 +109,7 @@ def build_vocabulary(examples):
 
 # Beginning of execution.
 print "Loading saved api data..."
-raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data.pickle"
+raw_file = os.path.expanduser(private_consts.SAVE_DIR)+"raw_data_total.pickle"
 
 raw = pickle.load( open( raw_file, "rb" ) )
 
@@ -120,13 +120,7 @@ print "Processing examples..."
 examples = [nonNone for nonNone in [process_item(item, stop_words) for item in raw] if nonNone]
 vocabulary = build_vocabulary(examples)
 
-data_sizes = []
-num = 10
-while num < len(examples):
-  data_sizes.append(num)
-  if (num*3) < len(examples):
-    data_sizes.append(num*3)
-  num *= 10
+data_sizes = utilities.generate_data_sizes(len(examples))
 for num_examples in data_sizes:
   print "Saving",num_examples,"examples..."
   save_data(vocabulary, examples[:num_examples])

@@ -19,3 +19,13 @@ def pretty_print_results():
   print "Mean Squared Error on 300 examples:"
   for key in results:
     print key,":",results[key]["300 examples"]["error"]
+
+def generate_data_sizes(max_size):
+  sizes = []
+  size = 10
+  while size <= max_size:
+    sizes.append(size)
+    if (size*3) <= max_size:
+      sizes.append(size*3)
+    size *= 10
+  return sizes
