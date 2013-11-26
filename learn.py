@@ -6,6 +6,7 @@ from sklearn import cross_validation, linear_model, neighbors, tree, gaussian_pr
 from sklearn.ensemble import AdaBoostRegressor, GradientBoostingRegressor, RandomForestRegressor
 from sklearn.decomposition import PCA
 from sklearn.svm import SVR
+from sklearn.cluster import KMeans
 
 import os, pickle, numpy, sys, random, time
 import private_consts
@@ -115,6 +116,91 @@ def SupportVectorRegression(x_train, t_train, x_test, t_test):
     "error": error,
   }
 
+def KMeansOnClusters(x_train, t_train, x_test, t_test):
+# run KNearestNeighbors where the cluster_centers_ are used as x_train, and
+# t_train is the average cluster t
+  
+  min_error = -1
+  best_k = -1
+  best_neighbor_k = -1
+  max_clusters = min(50, len(x_test)+1)
+  for k in range(2, max_clusters):
+    estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
+    estimator.fit(x_train, t_train)
+    
+    # [k by num_features] array of cluster centers
+    x_cluster = estimator.cluster_centers_
+    # [1 by num_examples] array of cluster assignments
+    x_train_labels = estimator.labels_
+    
+    # find the average cpg per cluster
+    t_cluster = numpy.zeros(k)
+    for i in range(0, k):
+      
+      # get the examples in the ith cluster
+      examples_in_i = numpy.where(x_train_labels==i)[0]
+      
+      # take the average cpg of those examples
+      total_cpg = 0;
+      for j in range(0, len(examples_in_i)):
+        total_cpg += t_train[examples_in_i[j]]
+      t_cluster[i] = total_cpg/len(examples_in_i)
+
+    # run KNearestNeighbor on the new data set
+    results = KNearestNeighbors(x_cluster, t_cluster, x_test, t_test)
+    if (min_error==-1 or results["error"] < min_error):
+      min_error = results["error"]
+      best_k = k
+      best_neighbor_k = results["best k"]
+
+  return {
+    "error": min_error,
+    "best k": best_k,
+    "best neighbor k": best_neighbor_k,
+  }
+
+def KMeansPerCluster(x_train, t_train, x_test, t_test):
+# run LocallyWeighted for each cluster in predict(x_test), where
+#   (x_train, t_train) is all of the examples in that cluster
+  min_error = -1
+  best_k = -1
+  max_clusters = min(50, len(x_test))
+  for k in range(2, max_clusters+1):
+    estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
+    estimator.fit(x_train, t_train)
+  
+    # [k by num_features] array of cluster centers
+    x_cluster = estimator.cluster_centers_
+    # [1 by num_examples] array of cluster assignments
+    x_train_labels = estimator.labels_
+    x_test_labels = estimator.predict(x_test)
+    
+    # run KNearestNeighbors for each cluster, and average the error
+    avg_error = 0
+    for i in range(0, k):
+      train_examples_in_i = numpy.where(x_train_labels==i)[0]
+      test_examples_in_i = numpy.where(x_test_labels==i)[0]
+      
+      x_train_cluster = [x_train[x] for x in train_examples_in_i]
+      t_train_cluster = [t_train[x] for x in train_examples_in_i]
+      x_test_cluster = [x_test[x] for x in test_examples_in_i]
+      t_test_cluster = [t_test[x] for x in test_examples_in_i]
+      
+      # only compute the KNearest if there are some examples in the new x_test
+      if (len(x_test_cluster) > 0):
+        results = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster)
+        avg_error += results["error"]
+  
+    # store the best cluster size
+    if (min_error==-1 or (avg_error/k) < min_error):
+      min_error = (avg_error/k)
+      best_k = k
+  return {
+    "error": min_error,
+    "best k": best_k,
+
+  }
+
 def computeError(t_out, t_test):
   diff = [t_out[i] - t_test[i] for i in range(len(t_out))]
   error = sum([i**2 for i in diff]) / len(t_out)
@@ -157,7 +243,7 @@ def learnAllUnlearnedModels():
   num_examples = [10, 30, 100, 300]
   algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression,
     KNearestWithPCA, BayesianRidgeRegression, GaussianProcessRegression, AdaBoostRegression,
-    GradientBoostingRegression, SupportVectorRegression]
+    GradientBoostingRegression, SupportVectorRegression, KMeansOnClusters, KMeansPerCluster]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
