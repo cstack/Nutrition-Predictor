@@ -123,6 +123,10 @@ print "Processing examples..."
 examples = [nonNone for nonNone in [process_item(item, stop_words) for item in raw] if nonNone]
 vocabulary = build_vocabulary(examples)
 
+# Make one more pass through vocab to throw out rare words.
+# Then, make another pass through examples to remove words that are
+# no longer part of the vocabulary.
+
 data_sizes = []
 num = 10
 while num < len(examples):
