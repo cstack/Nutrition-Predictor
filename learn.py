@@ -11,7 +11,7 @@ from sklearn.cluster import KMeans
 import os, pickle, numpy, sys, random, time
 import private_consts
 from load_save_data import load_data, load_and_split_data
-from utilities import pretty_print_predictions
+from utilities import pretty_print_predictions, generate_data_sizes
 import json
 
 def KNearestWithPCA(x_train, t_train, x_test, t_test, num_components=400):
@@ -240,7 +240,7 @@ def learnAllUnlearnedModels():
 
   needToSave = False
 
-  num_examples = [10, 30, 100, 300]
+  num_examples = generate_data_sizes(30000)
   algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression,
     KNearestWithPCA, BayesianRidgeRegression, GaussianProcessRegression, AdaBoostRegression,
     GradientBoostingRegression, SupportVectorRegression, KMeansOnClusters, KMeansPerCluster]
