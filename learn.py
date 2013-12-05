@@ -79,7 +79,7 @@ def BayesianRidgeRegression(x_train, t_train, x_test, t_test):
   }
 
 def GaussianProcessRegression(x_train, t_train, x_test, t_test):
-  x_train, t_train = deDupe(x_train, t_train)
+  deDupe(x_train, t_train)
   gp = gaussian_process.GaussianProcess(theta0=1e-2, thetaL=1e-4, thetaU=1e-1)
   gp.fit(x_train, t_train)
   pred, sigma2_pred = gp.predict(x_test, eval_MSE=True)
@@ -214,12 +214,16 @@ def shuffle_data(x,t):
   return (x_shuffled, t_shuffled)
 
 def deDupe(x,t):
-  """Ensure no x's repeat"""
+  """Ensure no x's repeat. Works in place."""
   d = {}
-  indices = [d.setdefault(str(x[i]), i) for i in range(len(x)) if str(x[i]) not in d]
-  new_x = [x[i] for i in indices]
-  new_t = [t[i] for i in indices]
-  return new_x, new_t
+  i = 0
+  while i < len(x):
+    if str(x[i]) not in d:
+      d.setdefault(str(x[i]), i)
+      i += 1
+    else:
+      x.pop(i)
+      t.pop(i)
 
 def mergeResults(results):
   merged = {}
