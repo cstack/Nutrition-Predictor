@@ -125,7 +125,7 @@ def KMeansOnClusters(x_train, t_train, x_test, t_test):
   best_neighbor_k = -1
   max_clusters = min(50, len(x_test)+1)
   for k in range(2, max_clusters):
-    estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
+    estimator = KMeans(n_clusters=k, init='k-means++', n_init=10, n_jobs=-1)
     estimator.fit(x_train, t_train)
     
     # [k by num_features] array of cluster centers
@@ -165,7 +165,7 @@ def KMeansPerCluster(x_train, t_train, x_test, t_test):
   min_error = -1
   best_k = -1
   max_clusters = min(50, len(x_test))
-  for k in range(2, max_clusters+1):
+  for k in range(30, max_clusters+1):
     estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
     estimator.fit(x_train, t_train)
   
@@ -240,10 +240,9 @@ def learnAllUnlearnedModels():
 
   needToSave = False
 
-  num_examples = [10, 30, 100, 300]
-  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression,
-    KNearestWithPCA, BayesianRidgeRegression, GaussianProcessRegression, AdaBoostRegression,
-    GradientBoostingRegression, SupportVectorRegression, KMeansOnClusters, KMeansPerCluster]
+  num_examples = [10, 30, 100, 300, 500, 1000]
+  algorithms = [BayesianRidgeRegression, GaussianProcessRegression,
+    GradientBoostingRegression, KMeansPerCluster]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
