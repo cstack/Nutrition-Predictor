@@ -189,11 +189,12 @@ def KMeansPerCluster(x_train, t_train, x_test, t_test):
       # only compute the KNearest if there are some examples in the new x_test
       if (len(x_test_cluster) > 0):
         results = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster)
-        avg_error += results["error"]
+        avg_error += results["error"] * len(t_test_cluster)
 
     # store the best cluster size
-    if (min_error==-1 or (avg_error/k) < min_error):
-      min_error = (avg_error/k)
+    avg_error /= len(t_test)
+    if (min_error==-1 or avg_error < min_error):
+      min_error = avg_error
       best_k = k
   return {
     "error": min_error,
@@ -245,9 +246,7 @@ def learnAllUnlearnedModels():
   needToSave = False
 
   num_examples = generate_data_sizes(30000)
-  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression,
-    KNearestWithPCA, BayesianRidgeRegression, GaussianProcessRegression, AdaBoostRegression,
-    GradientBoostingRegression, SupportVectorRegression, KMeansOnClusters, KMeansPerCluster]
+  algorithms = [SupportVectorRegression, KMeansPerCluster]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
