@@ -10,7 +10,7 @@ from sklearn.cluster import KMeans
 
 import os, pickle, numpy, sys, random, time
 import private_consts
-from load_save_data import load_data, load_and_split_data
+from load_save_data import *
 from utilities import pretty_print_predictions, generate_data_sizes
 import json
 
@@ -196,6 +196,9 @@ def KMeansPerCluster(x_train, t_train, x_test, t_test):
     if (min_error==-1 or avg_error < min_error):
       min_error = avg_error
       best_k = k
+
+  save_model(estimator, "KMeansPerCluster", len(x_train))
+
   return {
     "error": min_error,
     "best k": best_k,
