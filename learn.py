@@ -14,7 +14,7 @@ import os, pickle, numpy, sys, random, time, math, re
 
 import private_consts
 from load_save_data import *
-from utilities import pretty_print_predictions, generate_data_sizes
+from utilities import *
 import json
 
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
@@ -22,14 +22,14 @@ def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   error = computeError(t_out, t_test)
-  return (t_out,error)
+  return (t_out,error, knn)
 
 def KNearestNeighborsValidate(x_train, t_train, x_test, t_test):
   min_error = float("inf")
   best_k = 0
   neighbors = [1, 3, 5, 10, 15]
   for k in neighbors:
-    (t_out,error) = KNearestNeighbors(x_train, t_train, x_test, t_test, k)
+    (t_out,error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, k)
     if (error < min_error):
       min_error = error
       best_k = k
@@ -44,7 +44,8 @@ def KNearestNeighborsTest(x_train, t_train, x_test, t_test, params):
   get_num = re.compile('\d+')
   best_k = int(get_num.search(params["k for neighbors"]).group(0))
 
-  (t_out, error) = KNearestNeighbors(x_train, t_train, x_test, t_test, best_k)
+  (t_out, error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, best_k)
+  save_model(knn, "KNearestNeighborsTest", len(x_train))
   params["testing error"] = error
   return params
   
@@ -69,6 +70,7 @@ def GaussianProcessRegression(x_train, t_train, x_test, t_test):
   gp.fit(x_train, t_train)
   pred, sigma2_pred = gp.predict(x_test, eval_MSE=True)
   error = computeError(pred, t_test)
+  save_model(gp, "GaussianProcessRegression", len(x_train))
   return {
     "error": error,
     "sigma2": sum(sigma2_pred.tolist())/len(sigma2_pred.tolist())
@@ -120,21 +122,24 @@ def SupportVectorTesting(x_train, t_train, x_test, t_test, params):
   t_out = clf.predict(x_test)
   error = computeError(t_out, t_test)
   params["testing error"] = error
+  save_model(clf, "SupportVectorRegression", len(x_train))
   return params
 
 def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
 # run LocallyWeighted for each cluster in predict(x_test), where
 # (x_train, t_train) is all of the examples in that cluster
   min_error = -1
-  best_k = -1
-  min_clusters = min(len(x_test), 35)
-  max_clusters = min(50, len(x_test))
+  best_cluster_k = -1
+  best_neighbor_results = []
+  best_estimator = None
+  
   clusters = [10, 20, 30, 40, 50, 60, 80, 100]
-  best_neighbor = {}
   
   # validate the cluster size
   for k in clusters:
-    neighbor_k_array = []
+    if k > len(x_train):
+      continue
+    
     estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
     estimator.fit(x_train, t_train)
 
@@ -147,20 +152,16 @@ def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
     # run KNearestNeighbors for each of the k clusters,
     # do a weighted average on the error by cluster size
     avg_error = 0
-    sum_k_for_neighbors = 0
     neighbor_results = []
     for i in range(0, k):
-      train_examples_in_i = numpy.where(x_train_labels==i)[0]
-      test_examples_in_i = numpy.where(x_test_labels==i)[0]
-
-      x_cluster = [x_train[x] for x in train_examples_in_i]
-      t_cluster = [t_train[x] for x in train_examples_in_i]
+      sum_k_for_neighbors = 0
+      (x_cluster, t_cluster) = examples_in_cluster(x_train, t_train, i, x_train_labels)
+      # only compute the KNearest if there are some examples in the new x_test
+      if len(x_cluster) < 2:
+        neighbor_results.append(1)
+        continue
       
-      for j in range(len(x_cluster)):
-        # only compute the KNearest if there are some examples in the new x_test
-        if len(x_cluster) < 2:
-          continue
-        
+      for j in range(len(x_cluster)):        
         x_train_cluster = [x_cluster[r] for r in range(len(x_cluster)) if r != j]
         t_train_cluster = [t_cluster[r] for r in range(len(t_cluster)) if r != j]
       
@@ -174,76 +175,60 @@ def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
       avg_k_for_neighbors = sum_k_for_neighbors / len(x_cluster)
       neighbor_results.append(avg_k_for_neighbors)
   
+    # figure out the error for this cluster size
+    error = KMeansCluster(x_train, t_train, x_test, t_test, estimator, neighbor_results)
+  
     # store the best cluster size
-    avg_error /= len(t_test)
-    if (min_error==-1 or avg_error < min_error):
-      min_error = avg_error
-      best_k = k
-      print neighbor_results
-      best_neighbor = mergeResults(neighbor_results, False)
+    if (min_error==-1 or error < min_error):
+      min_error = error
+      best_cluster_k = k
+      best_neighbor_results = neighbor_results
+      best_estimator = estimator
         
   results = {
           "validation error" : min_error,
-          "k for clusters": best_k
+          "k for clusters": best_cluster_k,
+          "neighbor results" : best_neighbor_results,
+          "best estimator" : best_estimator
         }
-  results.update(best_neighbor)
   print results
   return results
 
 def KMeansCluster(x_train, t_train, x_test, t_test, estimator, neighbors_per_cluster):
 
-  x_train_labels = estimator.labels_
+  x_train_labels = estimator.predict(x_train)
   x_test_labels = estimator.predict(x_test)
   avg_error = 0
   for i in range(len(neighbors_per_cluster)):
-
+    # get the data in this cluster
     (x_train_cluster, t_train_cluster) = examples_in_cluster(x_train, t_train, i, x_train_labels)
     (x_test_cluster, t_test_cluster) = examples_in_cluster(x_test, t_test, i, x_train_labels)
 
     if (len(x_test_cluster) < 1):
       continue
+    
+    # run KNearestNeighbor with the neighbor value for this cluster
+    (t_out, error, knn) = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster, neighbors_per_cluster[i])
+    avg_error += error * len(x_test_cluster)
 
-    (t_out, error) = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster, neighbors_per_cluster[i])
+  return avg_error / len(x_test)
 
 
 def KMeansClusterTesting(x_train, t_train, x_test, t_test, params):
-  
+  print params
   # parse the params dictionary
   get_num = re.compile('\d+')
-  num_clusters = int(get_num.search(params["k for clusters"]).group(0))
-  num_neighbors = int(get_num.search(params["k for neighbors"]).group(0))
+  #num_clusters = int(get_num.search(params["k for clusters"]).group(0))
+  #num_neighbors = int(get_num.search(params["k for neighbors"]).group(0))
+  neighbors_per_cluster = params["neighbor results"]
+  estimator = params["best estimator"]
   
-  # learn the cluster assignments for the training data
-  estimator = KMeans(n_clusters=num_clusters, init='k-means++', n_init=10)
-  estimator.fit(x_train, t_train)
+  error = KMeansCluster(x_train, t_train, x_test, t_test, estimator, neighbors_per_cluster)
   
-  # [k by num_features] array of cluster centers
-  x_cluster = estimator.cluster_centers_
-  # PRINT THESE
-  
-  # [1 by num_examples] array of cluster assignments
-  x_train_labels = estimator.labels_
-  x_test_labels = estimator.predict(x_test)
-  avg_error = 0
-  for i in range(0, num_clusters):
-    train_examples_in_i = numpy.where(x_train_labels==i)[0]
-    test_examples_in_i = numpy.where(x_test_labels==i)[0]
-    
-    x_train_cluster = [x_train[x] for x in train_examples_in_i]
-    t_train_cluster = [t_train[x] for x in train_examples_in_i]
-    x_test_cluster = [x_test[x] for x in test_examples_in_i]
-    t_test_cluster = [t_test[x] for x in test_examples_in_i]
-    
-    # only compute the KNearest if there are some examples in the new x_test
-    if (len(x_test_cluster) > 0):
-      (t_out, error) = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster, num_neighbors)
-      avg_error += (error * (len(x_test_cluster)/float(num_clusters)))
-
   save_model(estimator, "KMeansPerCluster", len(x_train))
   final_results = {
-        "testing clusters" : num_clusters,
-        "testing neighbors" : num_neighbors,
-        "testing error" : avg_error,
+        "testing neighbors" : neighbors_per_cluster,
+        "testing error" : error,
         }
   final_results.update(params)
   return final_results
@@ -274,6 +259,12 @@ def deDupe(x,t):
 
 def mergeResults(results, print_range = True):
   merged = {}
+  if "best estimator" in results[0]:
+    best_error = min([result['validation error'] for result in results])
+    for i in range(len(results)):
+      if results[i]['validation error'] == best_error:
+        return results[i]
+  
   for key in results[0]:
     # if the values for this key are strings, just take the most common string
     if type(results[0][key]) is str:
@@ -352,6 +343,9 @@ def learnAllUnlearnedModels():
         # run the algorithm on the testing set with the validated params
         results[algorithm][experiment_key] = testing_fn(x_train, t_train, x_test,
           t_test, results[algorithm][experiment_key])
+    
+        if "best estimator" in results[algorithm][experiment_key]:
+          del results[algorithm][experiment_key]["best estimator"]
 
         # print the results to a file after run of the algorithm
         print "Saving results to {0}".format(results_file)
