@@ -29,3 +29,9 @@ def generate_data_sizes(max_size):
       sizes.append(size*3)
     size *= 10
   return sizes
+
+def examples_in_cluster(x, t, cluster, labels):
+  indices = [i for i in range(len(x)) if labels[i] == cluster]
+  x_in_cluster = [x[i] for i in indices]
+  t_in_cluster = [t[i] for i in indices]
+  return x_in_cluster, t_in_cluster
