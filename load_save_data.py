@@ -17,7 +17,7 @@ def load_data(num_examples = 100):
   for example in uninflated_data["examples"]:
     tokens_list = [0] * len(vocabulary)
     for token in example[0]:
-      tokens_list[vocabulary.index(token)] = 1
+      tokens_list[list(vocabulary).index(token)] = 1
     x.append(tokens_list)
 
   return (x,t, vocabulary)
