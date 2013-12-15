@@ -6,7 +6,7 @@ usable examples.
 import private_consts, utilities
 from load_save_data import save_data
 from stemming.porter2 import stem
-import string
+import string, random
 
 import pickle
 import os
@@ -167,7 +167,7 @@ prune_vocabulary(examples, vocabulary)
 data_sizes = utilities.generate_data_sizes(len(examples))
 for num_examples in data_sizes:
   print "Saving",num_examples,"examples..."
-  save_data(vocabulary, examples[:num_examples])
+  save_data(vocabulary, random.sample(examples,num_examples))
 print "Saving",len(examples),"examples"
 save_data(vocabulary, examples)
 

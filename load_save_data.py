@@ -6,6 +6,11 @@ def save_data(vocabulary, examples):
   save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(len(examples))
   pickle.dump( {"vocabulary":vocabulary, "examples":examples} , open( save_file, "wb" ) )
 
+def save_model(model, name, size):
+  print "saving model {0} {1}".format(name,size)
+  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"{0}.{1}.pickle".format(name, size)
+  pickle.dump( model , open( save_file, "wb" ) )
+
 def load_data(num_examples = 100):
   save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(num_examples)
   uninflated_data = pickle.load( open( save_file, "rb" ) )
@@ -17,7 +22,7 @@ def load_data(num_examples = 100):
   for example in uninflated_data["examples"]:
     tokens_list = [0] * len(vocabulary)
     for token in example[0]:
-      tokens_list[vocabulary.index(token)] = 1
+      tokens_list[list(vocabulary).index(token)] = 1
     x.append(tokens_list)
 
   return (x,t, vocabulary)

@@ -10,8 +10,8 @@ from sklearn.cluster import KMeans
 
 import os, pickle, numpy, sys, random, time
 import private_consts
-from load_save_data import load_data, load_and_split_data
-from utilities import pretty_print_predictions
+from load_save_data import *
+from utilities import pretty_print_predictions, generate_data_sizes
 import json
 
 def KNearestWithPCA(x_train, t_train, x_test, t_test, num_components=400):
@@ -79,7 +79,7 @@ def BayesianRidgeRegression(x_train, t_train, x_test, t_test):
   }
 
 def GaussianProcessRegression(x_train, t_train, x_test, t_test):
-  x_train, t_train = deDupe(x_train, t_train)
+  deDupe(x_train, t_train)
   gp = gaussian_process.GaussianProcess(theta0=1e-2, thetaL=1e-4, thetaU=1e-1)
   gp.fit(x_train, t_train)
   pred, sigma2_pred = gp.predict(x_test, eval_MSE=True)
@@ -119,7 +119,7 @@ def SupportVectorRegression(x_train, t_train, x_test, t_test):
 def KMeansOnClusters(x_train, t_train, x_test, t_test):
 # run KNearestNeighbors where the cluster_centers_ are used as x_train, and
 # t_train is the average cluster t
-  
+
   min_error = -1
   best_k = -1
   best_neighbor_k = -1
@@ -127,19 +127,19 @@ def KMeansOnClusters(x_train, t_train, x_test, t_test):
   for k in range(2, max_clusters):
     estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
     estimator.fit(x_train, t_train)
-    
+
     # [k by num_features] array of cluster centers
     x_cluster = estimator.cluster_centers_
     # [1 by num_examples] array of cluster assignments
     x_train_labels = estimator.labels_
-    
+
     # find the average cpg per cluster
     t_cluster = numpy.zeros(k)
     for i in range(0, k):
-      
+
       # get the examples in the ith cluster
       examples_in_i = numpy.where(x_train_labels==i)[0]
-      
+
       # take the average cpg of those examples
       total_cpg = 0;
       for j in range(0, len(examples_in_i)):
@@ -168,33 +168,37 @@ def KMeansPerCluster(x_train, t_train, x_test, t_test):
   for k in range(2, max_clusters+1):
     estimator = KMeans(n_clusters=k, init='k-means++', n_init=10)
     estimator.fit(x_train, t_train)
-  
+
     # [k by num_features] array of cluster centers
     x_cluster = estimator.cluster_centers_
     # [1 by num_examples] array of cluster assignments
     x_train_labels = estimator.labels_
     x_test_labels = estimator.predict(x_test)
-    
+
     # run KNearestNeighbors for each cluster, and average the error
     avg_error = 0
     for i in range(0, k):
       train_examples_in_i = numpy.where(x_train_labels==i)[0]
       test_examples_in_i = numpy.where(x_test_labels==i)[0]
-      
+
       x_train_cluster = [x_train[x] for x in train_examples_in_i]
       t_train_cluster = [t_train[x] for x in train_examples_in_i]
       x_test_cluster = [x_test[x] for x in test_examples_in_i]
       t_test_cluster = [t_test[x] for x in test_examples_in_i]
-      
+
       # only compute the KNearest if there are some examples in the new x_test
       if (len(x_test_cluster) > 0):
         results = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster)
-        avg_error += results["error"]
-  
+        avg_error += results["error"] * len(t_test_cluster)
+
     # store the best cluster size
-    if (min_error==-1 or (avg_error/k) < min_error):
-      min_error = (avg_error/k)
+    avg_error /= len(t_test)
+    if (min_error==-1 or avg_error < min_error):
+      min_error = avg_error
       best_k = k
+
+  save_model(estimator, "KMeansPerCluster", len(x_train))
+
   return {
     "error": min_error,
     "best k": best_k,
@@ -214,12 +218,16 @@ def shuffle_data(x,t):
   return (x_shuffled, t_shuffled)
 
 def deDupe(x,t):
-  """Ensure no x's repeat"""
+  """Ensure no x's repeat. Works in place."""
   d = {}
-  indices = [d.setdefault(str(x[i]), i) for i in range(len(x)) if str(x[i]) not in d]
-  new_x = [x[i] for i in indices]
-  new_t = [t[i] for i in indices]
-  return new_x, new_t
+  i = 0
+  while i < len(x):
+    if str(x[i]) not in d:
+      d.setdefault(str(x[i]), i)
+      i += 1
+    else:
+      x.pop(i)
+      t.pop(i)
 
 def mergeResults(results):
   merged = {}
@@ -240,10 +248,8 @@ def learnAllUnlearnedModels():
 
   needToSave = False
 
-  num_examples = [10, 30, 100, 300]
-  algorithms = [LinearRegression, KNearestNeighbors, RidgeRegression, DescisionTreeRegression,
-    KNearestWithPCA, BayesianRidgeRegression, GaussianProcessRegression, AdaBoostRegression,
-    GradientBoostingRegression, SupportVectorRegression, KMeansOnClusters, KMeansPerCluster]
+  num_examples = generate_data_sizes(30000)
+  algorithms = [SupportVectorRegression, KMeansPerCluster]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
@@ -268,13 +274,10 @@ def learnAllUnlearnedModels():
           result["time"] = finish - start
           k_results.append(result)
         results[algorithm][experiment_key] = mergeResults(k_results)
-        needToSave = True
-
-  if needToSave:
-    print "Saving results to {0}".format(results_file)
-    f = open(results_file, "w")
-    f.write(json.dumps(results, indent=4, sort_keys=True))
-    f.close()
+        print "Saving results to {0}".format(results_file)
+        f = open(results_file, "w")
+        f.write(json.dumps(results, indent=4, sort_keys=True))
+        f.close()
 
   print "All models learned"
   print "See {0}".format(results_file)
