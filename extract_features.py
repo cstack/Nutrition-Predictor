@@ -95,7 +95,7 @@ def prune_vocabulary(examples, food_vocabulary):
       word_freq[token] = word_freq[token] + 1
 
   # Remove terms that only appear very rarely.
-  min_count = 1 # The minimum num of times a term must appear to be in the vocab
+  min_count = 2 # The minimum num of times a term must appear to be in the vocab
   frequencies = set()
   for key in word_freq:
     if word_freq[key] > min_count:
