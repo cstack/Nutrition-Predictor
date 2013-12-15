@@ -35,7 +35,7 @@ def LinearRegression(x_train, t_train, x_test, t_test):
 
 def KNearestNeighbors(x_train, t_train, x_test, t_test):
   min_error = float("inf")
-  for k in range(5, 15+1):
+  for k in [5, 10, 15, 20]:
     weights = 'uniform'
     knn = neighbors.KNeighborsRegressor(k, weights)
     t_out = knn.fit(x_train, t_train).predict(x_test)
@@ -248,8 +248,8 @@ def learnAllUnlearnedModels():
 
   needToSave = False
 
-  num_examples = generate_data_sizes(30000)
-  algorithms = [SupportVectorRegression, KMeansPerCluster]
+  num_examples = generate_data_sizes(10000)
+  algorithms = [SupportVectorRegression, KNearestNeighbors, GaussianProcessRegression]
 
   for n in num_examples:
     (x,t,vocabulary) = load_data(n)
