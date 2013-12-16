@@ -161,15 +161,17 @@ def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
         neighbor_results.append(1)
         continue
       
-      for j in range(len(x_cluster)):        
-        x_train_cluster = [x_cluster[r] for r in range(len(x_cluster)) if r != j]
-        t_train_cluster = [t_cluster[r] for r in range(len(t_cluster)) if r != j]
+      # kfold for the num neighbors to use for KNN per cluster
+      num_folds = min(len(x_cluster), 5)
+      kf = cross_validation.KFold(len(x_train), n_folds = 5, indices=True)
+      for train, test in kf:
+        x_train_cluster = [x_cluster[r] for r in train]
+        t_train_cluster = [t_cluster[r] for r in train]
       
-        x_test_cluster = [x_cluster[j]]
-        t_test_cluster = [t_cluster[j]]
+        x_test_cluster = [x_cluster[j] for r in test]
+        t_test_cluster = [t_cluster[j] for r in test]
 
         results = KNearestNeighborsValidate(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster)
-        #avg_error += results["validation error"] * len(t_test_cluster)
         sum_k_for_neighbors += results["k for neighbors"]
   
       avg_k_for_neighbors = sum_k_for_neighbors / len(x_cluster)
