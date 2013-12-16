@@ -2,17 +2,28 @@ import private_consts
 
 import os, pickle, random
 
-def save_data(vocabulary, examples):
-  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(len(examples))
+def save_data(vocabulary, examples, cal_only):
+  save_file = str()
+  if cal_only:
+    save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}_cal_only.pickle".format(len(examples))
+  else:
+    save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(len(examples))
   pickle.dump( {"vocabulary":vocabulary, "examples":examples} , open( save_file, "wb" ) )
 
-def save_model(model, name, size):
+def save_model(model, name, size, cal_only):
   print "saving model {0} {1}".format(name,size)
+
   save_file = os.path.expanduser(private_consts.SAVE_DIR)+"{0}.{1}.pickle".format(name, size)
+  if cal_only:
+    save_file = os.path.expanduser(private_consts.SAVE_DIR)+"{0}.{1}_cal_only.pickle".format(name, size)
   pickle.dump( model , open( save_file, "wb" ) )
 
-def load_data(num_examples = 100):
-  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(num_examples)
+def load_data(num_examples, cal_only = False):
+  save_file = str()
+  if cal_only:
+    save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}_cal_only.pickle".format(num_examples)
+  else:
+    save_file = os.path.expanduser(private_consts.SAVE_DIR)+"uninflated_data.{0}.pickle".format(num_examples)
   uninflated_data = pickle.load( open( save_file, "rb" ) )
 
   vocabulary = uninflated_data["vocabulary"]
