@@ -17,8 +17,11 @@ from load_save_data import *
 from utilities import *
 import json
 
+# Please excuse use of global variable...
+cal_only = False
+
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
-  weights = 'uniform'
+  weights = 'distance'
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   error = computeError(t_out, t_test)
@@ -45,7 +48,7 @@ def KNearestNeighborsTest(x_train, t_train, x_test, t_test, params):
   best_k = int(get_num.search(params["k for neighbors"]).group(0))
 
   (t_out, error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, best_k)
-  save_model(knn, "KNearestNeighborsTest", len(x_train))
+  save_model(knn, "KNearestNeighborsTest", len(x_train), cal_only)
   params["testing error"] = error
   return params
   
@@ -70,7 +73,7 @@ def GaussianProcessRegression(x_train, t_train, x_test, t_test):
   gp.fit(x_train, t_train)
   pred, sigma2_pred = gp.predict(x_test, eval_MSE=True)
   error = computeError(pred, t_test)
-  save_model(gp, "GaussianProcessRegression", len(x_train))
+  save_model(gp, "GaussianProcessRegression", len(x_train), cal_only)
   return {
     "error": error,
     "sigma2": sum(sigma2_pred.tolist())/len(sigma2_pred.tolist())
@@ -122,7 +125,7 @@ def SupportVectorTesting(x_train, t_train, x_test, t_test, params):
   t_out = clf.predict(x_test)
   error = computeError(t_out, t_test)
   params["testing error"] = error
-  save_model(clf, "SupportVectorRegression", len(x_train))
+  save_model(clf, "SupportVectorRegression", len(x_train), cal_only)
   return params
 
 def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
@@ -228,7 +231,7 @@ def KMeansClusterTesting(x_train, t_train, x_test, t_test, params):
   
   error = KMeansCluster(x_train, t_train, x_test, t_test, estimator, neighbors_per_cluster)
   
-  save_model(estimator, "KMeansPerCluster", len(x_train))
+  save_model(estimator, "KMeansPerCluster", len(x_train), cal_only)
   final_results = {
         "testing neighbors" : neighbors_per_cluster,
         "testing error" : error,
@@ -286,7 +289,14 @@ def mergeResults(results, print_range = True):
   return merged
 
 def learnAllUnlearnedModels():
-  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"justines_results.txt"
+  cal_only = False
+  if len(sys.argv) == 2 and sys.argv[1] == "-c":
+    cal_only = True
+  
+  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"joshs_results.txt"
+  if cal_only:
+    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"joshs_results_cal_only.txt"
+
   try:
     with open(results_file) as f:
         results = json.loads(f.read())
@@ -304,7 +314,7 @@ def learnAllUnlearnedModels():
 
   for n in num_examples:
     # load the pickled data and shuffle it around
-    (x,t,vocabulary) = load_data(n)
+    (x,t,vocabulary) = load_data(n, cal_only)
     (x,t) = shuffle_data(x,t)
     
     # split into 80% training, 20% testing
@@ -360,9 +370,7 @@ def learnAllUnlearnedModels():
   print "See {0}".format(results_file)
 
 if __name__ == "__main__":
-  if len(sys.argv) < 2:
-    num_examples = 100
-  else:
-    num_examples = int(sys.argv[1])
+  if len(sys.argv) == 2 and sys.argv[1] == "-c": 
+   cal_only = True
 
   learnAllUnlearnedModels()

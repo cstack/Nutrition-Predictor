@@ -167,9 +167,9 @@ prune_vocabulary(examples, vocabulary)
 data_sizes = utilities.generate_data_sizes(len(examples))
 for num_examples in data_sizes:
   print "Saving",num_examples,"examples..."
-  save_data(vocabulary, random.sample(examples,num_examples))
+  save_data(vocabulary, random.sample(examples,num_examples), cal_only)
 print "Saving",len(examples),"examples"
-save_data(vocabulary, examples)
+save_data(vocabulary, examples, cal_only)
 
 f = open(os.path.expanduser(private_consts.SAVE_DIR)+"human_readable_data.txt", 'w')
 f.write("\n".join([str(example[1])+", "+str(sorted(example[0])) for example in examples]))
