@@ -21,7 +21,7 @@ import json
 cal_only = False
 
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
-  weights = 'uniform'
+  weights = 'distance'
   
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
@@ -187,7 +187,6 @@ def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
   
       #avg_k_for_neighbors = sum_k_for_neighbors / len(x_cluster)
       avg_k_for_neighbors = sum_k_for_neighbors / num_folds
-      print "Avg k", avg_k_for_neighbors
       neighbor_results.append(avg_k_for_neighbors)
   
     # figure out the error for this cluster size
@@ -367,7 +366,9 @@ def learnAllUnlearnedModels():
     
         if "best estimator" in results[algorithm][experiment_key]:
           del results[algorithm][experiment_key]["best estimator"]
+          results[algorithm][experiment_key]["avg neighbor k used"] = sum([i for i in results[algorithm][experiment_key]["neighbor results"]])/len(results[algorithm][experiment_key]["neighbor results"])
           del results[algorithm][experiment_key]["neighbor results"]
+
 
         # print the results to a file after run of the algorithm
         print "Saving results to {0}".format(results_file)
