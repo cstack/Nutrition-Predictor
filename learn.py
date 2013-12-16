@@ -21,7 +21,8 @@ import json
 cal_only = False
 
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
-  weights = 'distance'
+  weights = 'uniform'
+
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   error = computeError(t_out, t_test)
