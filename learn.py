@@ -21,7 +21,7 @@ import json
 cal_only = False
 
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
-  weights = 'distance'
+  weights = 'uniform'
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   error = computeError(t_out, t_test)
@@ -293,9 +293,9 @@ def learnAllUnlearnedModels():
   if len(sys.argv) == 2 and sys.argv[1] == "-c":
     cal_only = True
   
-  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"joshs_results.txt"
+  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"justines_results.txt"
   if cal_only:
-    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"joshs_results_cal_only.txt"
+    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"justines_results_cal_only.txt"
 
   try:
     with open(results_file) as f:
