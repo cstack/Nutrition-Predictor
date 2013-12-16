@@ -22,6 +22,7 @@ cal_only = False
 
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
   weights = 'uniform'
+  
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   error = computeError(t_out, t_test)
@@ -193,7 +194,8 @@ def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
   results = {
           "validation error" : min_error,
           "k for clusters": best_cluster_k,
-          "best estimator" : best_estimator
+          "best estimator" : best_estimator,
+          "neighbor results" : best_neighbor_results
         }
   print results
   return results
@@ -212,8 +214,6 @@ def KMeansCluster(x_train, t_train, x_test, t_test, estimator, neighbors_per_clu
       continue
     
     # run KNearestNeighbor with the neighbor value for this cluster
-    print len(x_train_cluster)
-    print len(t_test_cluster)
     (t_out, error, knn) = KNearestNeighbors(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster, neighbors_per_cluster[i])
     avg_error += error * len(x_test_cluster)
 
@@ -359,6 +359,7 @@ def learnAllUnlearnedModels():
     
         if "best estimator" in results[algorithm][experiment_key]:
           del results[algorithm][experiment_key]["best estimator"]
+          del results[algorithm][experiment_key]["neighbor results"]
 
         # print the results to a file after run of the algorithm
         print "Saving results to {0}".format(results_file)
