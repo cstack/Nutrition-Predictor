@@ -168,17 +168,26 @@ def KMeansPerClusterValidating(x_train, t_train, x_test, t_test):
       # kfold for the num neighbors to use for KNN per cluster
       num_folds = min(len(x_cluster), 5)
       kf = cross_validation.KFold(len(x_cluster), n_folds = num_folds, indices=True)
+
       for train, test in kf:
         x_train_cluster = [x_cluster[r] for r in train]
         t_train_cluster = [t_cluster[r] for r in train]
-      
         x_test_cluster = [x_cluster[r] for r in test]
         t_test_cluster = [t_cluster[r] for r in test]
-
+        
+      #for j in range(len(x_cluster)):
+      #  x_train_cluster = [x_cluster[r] for r in range(len(x_cluster)) if r != j]
+      #  t_train_cluster = [t_cluster[r] for r in range(len(t_cluster)) if r != j]
+        
+      #  x_test_cluster = [x_cluster[j]]
+      #  t_test_cluster = [t_cluster[j]]
+        
         results = KNearestNeighborsValidate(x_train_cluster, t_train_cluster, x_test_cluster, t_test_cluster)
         sum_k_for_neighbors += results["k for neighbors"]
   
-      avg_k_for_neighbors = sum_k_for_neighbors / len(x_cluster)
+      #avg_k_for_neighbors = sum_k_for_neighbors / len(x_cluster)
+      avg_k_for_neighbors = sum_k_for_neighbors / num_folds
+      print "Avg k", avg_k_for_neighbors
       neighbor_results.append(avg_k_for_neighbors)
   
     # figure out the error for this cluster size
@@ -233,7 +242,6 @@ def KMeansClusterTesting(x_train, t_train, x_test, t_test, params):
   
   save_model(estimator, "KMeansPerCluster", len(x_train), cal_only)
   final_results = {
-        "testing neighbors" : neighbors_per_cluster,
         "testing error" : error,
         }
   final_results.update(params)
