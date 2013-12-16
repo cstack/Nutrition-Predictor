@@ -18,6 +18,12 @@ def save_model(model, name, size, cal_only):
     save_file = os.path.expanduser(private_consts.SAVE_DIR)+"{0}.{1}_cal_only.pickle".format(name, size)
   pickle.dump( model , open( save_file, "wb" ) )
 
+def load_model(name, size, cal_only):
+  save_file = os.path.expanduser(private_consts.SAVE_DIR)+"{0}.{1}.pickle".format(name, size)
+  if cal_only:
+    save_file = os.path.expanduser(private_consts.SAVE_DIR)+"{0}.{1}_cal_only.pickle".format(name, size)
+  return pickle.load( open( save_file, "rb" ) )
+
 def load_data(num_examples, cal_only = False):
   save_file = str()
   if cal_only:
