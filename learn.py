@@ -87,14 +87,13 @@ def GaussianProcessTesting(x_train, t_train, x_test, t_test, params):
 def SupportVectorRegression(x_train, t_train, x_test, t_test):
   C_vals = [0.1, 0.5, 1, 1.5, 2]
   e_vals = [0.01, 0.05, 0.1, 0.2, 0.5]
-  kernel_vals = ['linear', 'poly', 'rbf', 'sigmoid']
 
   min_error = -1
   best_params = {}
   for c in C_vals:
     for e in e_vals:
       for k in kernel_vals:
-        clf = SVR(C=c, epsilon=e, kernel=k)
+        clf = SVR(C=c, epsilon=e, kernel='linear')
         clf.fit(x_train, t_train)
         p = clf.predict(x_test)
         error = computeError(p, t_test)
@@ -104,7 +103,6 @@ def SupportVectorRegression(x_train, t_train, x_test, t_test):
           best_params = {
             "best C" : c,
             "best Epsilon" : e,
-            "kernel" : k
           }
 
   results = { "validation error": min_error }
@@ -119,9 +117,8 @@ def SupportVectorTesting(x_train, t_train, x_test, t_test, params):
   best_c = float(get_float.search(params["best C"]).group(0))
   best_e = float(get_float.search(params["best Epsilon"]).group(0))
   get_string = re.compile('[a-fA-F]+')
-  best_k = params["kernel"]
 
-  clf = SVR(C=best_c, epsilon=best_e, kernel=best_k)
+  clf = SVR(C=best_c, epsilon=best_e, kernel='linear')
   clf.fit(x_train, t_train)
   t_out = clf.predict(x_test)
   error = computeError(t_out, t_test)
