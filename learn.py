@@ -20,6 +20,26 @@ import json
 # Please excuse use of global variable...
 cal_only = False
 
+def GuessTheMean(x_train, t_train, x_test, t_test):
+  mean = float(sum(t_train))/len(t_train)
+  predictions = [mean for i in range(len(x_test))]
+  error = computeError(predictions, t_test)
+  return (mean, error)
+
+
+def GuessTheMeanValidate(x_train, t_train, x_test, t_test):
+  (mean, error) = GuessTheMean(x_train, t_train, x_test, t_test)
+  return {
+    "validation error": error,
+    "mean": mean
+  }
+
+def GuessTheMeanTest(x_train, t_train, x_test, t_test, params):
+  (mean, error) = GuessTheMean(x_train, t_train, x_test, t_test)
+  params["testing error"] = error
+  params["mean"] = mean
+  return params
+
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
   weights = 'distance'
 
@@ -92,18 +112,17 @@ def SupportVectorRegression(x_train, t_train, x_test, t_test):
   best_params = {}
   for c in C_vals:
     for e in e_vals:
-      for k in kernel_vals:
-        clf = SVR(C=c, epsilon=e, kernel='linear')
-        clf.fit(x_train, t_train)
-        p = clf.predict(x_test)
-        error = computeError(p, t_test)
+      clf = SVR(C=c, epsilon=e, kernel='linear')
+      clf.fit(x_train, t_train)
+      p = clf.predict(x_test)
+      error = computeError(p, t_test)
 
-        if (min_error == -1 or error < min_error):
-          min_error = error
-          best_params = {
-            "best C" : c,
-            "best Epsilon" : e,
-          }
+      if (min_error == -1 or error < min_error):
+        min_error = error
+        best_params = {
+          "best C" : c,
+          "best Epsilon" : e,
+        }
 
   results = { "validation error": min_error }
   results.update(best_params)
@@ -297,9 +316,9 @@ def learnAllUnlearnedModels():
   if len(sys.argv) == 2 and sys.argv[1] == "-c":
     cal_only = True
 
-  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"justines_results.txt"
+  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results.txt"
   if cal_only:
-    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"justines_results_cal_only.txt"
+    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results_cal_only.txt"
 
   try:
     with open(results_file) as f:
@@ -312,9 +331,9 @@ def learnAllUnlearnedModels():
 
   num_examples = generate_data_sizes(30000)
 
-  algorithms = [KNearestNeighborsValidate, KMeansPerClusterValidating, SupportVectorRegression]
+  algorithms = [GuessTheMeanValidate, KNearestNeighborsValidate, SupportVectorRegression]
 
-  testing_algs = [KNearestNeighborsTest, KMeansClusterTesting, SupportVectorTesting]
+  testing_algs = [GuessTheMeanTest, KNearestNeighborsTest, SupportVectorTesting]
 
   for n in num_examples:
     # load the pickled data and shuffle it around
