@@ -73,7 +73,7 @@ def KNearestNeighborsTest(x_train, t_train, x_test, t_test, params):
   params["testing error"] = error
   return params
 
-def GradientBoostingRegression(x_train, t_train, x_test, t_test, loss="ls"):
+def GradientBoostingRegression(x_train, t_train, x_test, t_test, loss="lad"):
   model = GradientBoostingRegressor(loss=loss)
 
   model.fit(x_train, t_train)
@@ -85,16 +85,17 @@ def GradientBoostingRegression(x_train, t_train, x_test, t_test, loss="ls"):
 def GradientBoostingRegressionValidate(x_train, t_train, x_test, t_test):
   min_error = float("inf")
   best_loss_fn = None
-  loss_fns = ["ls", "lad", "huber", "quantile"]
+  loss_fns = ["huber", "lad"]
   for loss in loss_fns:
     (t_out,error, model) = GradientBoostingRegression(x_train, t_train, x_test, t_test, loss)
+    print loss, error
     if (error < min_error):
       min_error = error
       best_loss_fn = loss
 
   return {
     "validation error": min_error,
-    "loss fn": loss
+    "loss fn": best_loss_fn
   }
 
 def GradientBoostingRegressionTest(x_train, t_train, x_test, t_test, params):
