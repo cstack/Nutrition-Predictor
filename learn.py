@@ -40,6 +40,26 @@ def GuessTheMeanTest(x_train, t_train, x_test, t_test, params):
   params["mean"] = mean
   return params
 
+def GuessTheMedian(x_train, t_train, x_test, t_test):
+  median = sorted(t_train)[len(t_train)/2]
+  predictions = [median for i in range(len(x_test))]
+  error = computeError(predictions, t_test)
+  return (median, error)
+
+
+def GuessTheMedianValidate(x_train, t_train, x_test, t_test):
+  (median, error) = GuessTheMean(x_train, t_train, x_test, t_test)
+  return {
+    "validation error": error,
+    "median": median
+  }
+
+def GuessTheMedianTest(x_train, t_train, x_test, t_test, params):
+  (median, error) = GuessTheMedian(x_train, t_train, x_test, t_test)
+  params["testing error"] = error
+  params["median"] = median
+  return params
+
 def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
   weights = 'distance'
 
@@ -363,9 +383,9 @@ def learnAllUnlearnedModels():
 
   num_examples = generate_data_sizes(30000)
 
-  algorithms = [GuessTheMeanValidate, SupportVectorRegression, GradientBoostingRegressionValidate]
+  algorithms = [GuessTheMeanValidate, GuessTheMedianValidate, SupportVectorRegression, GradientBoostingRegressionValidate]
 
-  testing_algs = [GuessTheMeanTest, SupportVectorTesting, GradientBoostingRegressionTest]
+  testing_algs = [GuessTheMeanTest, GuessTheMedianTest, SupportVectorTesting, GradientBoostingRegressionTest]
 
   for n in num_examples:
     # load the pickled data and shuffle it around
