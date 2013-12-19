@@ -73,6 +73,37 @@ def KNearestNeighborsTest(x_train, t_train, x_test, t_test, params):
   params["testing error"] = error
   return params
 
+def GradientBoostingRegression(x_train, t_train, x_test, t_test, loss="ls"):
+  model = GradientBoostingRegressor(loss=loss)
+
+  model.fit(x_train, t_train)
+
+  t_out = model.fit(x_train, t_train).predict(x_test)
+  error = computeError(t_out, t_test)
+  return (t_out, error, model)
+
+def GradientBoostingRegressionValidate(x_train, t_train, x_test, t_test):
+  min_error = float("inf")
+  best_loss_fn = None
+  loss_fns = ["ls", "lad", "huber", "quantile"]
+  for loss in loss_fns:
+    (t_out,error, model) = GradientBoostingRegression(x_train, t_train, x_test, t_test, loss)
+    if (error < min_error):
+      min_error = error
+      best_loss_fn = loss
+
+  return {
+    "validation error": min_error,
+    "loss fn": loss
+  }
+
+def GradientBoostingRegressionTest(x_train, t_train, x_test, t_test, params):
+  loss = params["loss fn"]
+
+  (t_out, error, model) = GradientBoostingRegression(x_train, t_train, x_test, t_test, loss)
+  save_model(model, "GradientBoostingRegression", len(x_train), cal_only)
+  params["testing error"] = error
+  return params
 
 def BayesianRidgeRegression(x_train, t_train, x_test, t_test):
   clf = linear_model.BayesianRidge()
@@ -331,9 +362,9 @@ def learnAllUnlearnedModels():
 
   num_examples = generate_data_sizes(30000)
 
-  algorithms = [GuessTheMeanValidate, KNearestNeighborsValidate, SupportVectorRegression]
+  algorithms = [GuessTheMeanValidate, SupportVectorRegression, GradientBoostingRegressionValidate]
 
-  testing_algs = [GuessTheMeanTest, KNearestNeighborsTest, SupportVectorTesting]
+  testing_algs = [GuessTheMeanTest, SupportVectorTesting, GradientBoostingRegressionTest]
 
   for n in num_examples:
     # load the pickled data and shuffle it around
@@ -363,6 +394,7 @@ def learnAllUnlearnedModels():
           t_val = [t[i] for i in test]
           start = time.time()
           validation_result = validation_fn(x_train, t_train, x_val, t_val)
+          print validation_result
           finish = time.time()
           validation_result["time"] = finish - start
           k_results.append(validation_result)
