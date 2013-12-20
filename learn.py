@@ -381,13 +381,47 @@ def learnAllUnlearnedModels():
 
   needToSave = False
 
-  num_examples = generate_data_sizes(30000)
+  num_examples = generate_data_sizes(10000)
+  num_examples.append("final")
 
   algorithms = [GuessTheMeanValidate, GuessTheMedianValidate, SupportVectorRegression, GradientBoostingRegressionValidate]
 
   testing_algs = [GuessTheMeanTest, GuessTheMedianTest, SupportVectorTesting, GradientBoostingRegressionTest]
 
+
+
   for n in num_examples:
+    if n == "final":
+      print "Loading data"
+      (x,t,vocabulary) = load_data(10000, cal_only)
+      for validation_fn, testing_fn in zip(algorithms, testing_algs):
+        algorithm = validation_fn.__name__
+        if "final" not in results[algorithm]:
+          print "Final experiment for %s" % algorithm
+          params = results[algorithm]["10000 examples"]
+          num_train = int(10000*0.8)
+          trials = []
+          for i in range(5):
+            print "Iteration %d" % i
+            print "Splitting data"
+            (x,t) = shuffle_data(x,t)
+            x_train = x[:num_train]
+            t_train = t[:num_train]
+            x_test = x[num_train:]
+            t_test = t[num_train:]
+            print "Training"
+            result = testing_fn(x_train, t_train, x_test, t_test, params)
+            print "Result:", result
+            trials.append({
+              "testing error": result["testing error"]
+              })
+          results[algorithm]["final"] = mergeResults(trials)
+          print "Saving results to {0}".format(results_file)
+          f = open(results_file, "w")
+          f.write(json.dumps(results, indent=4, sort_keys=True))
+          f.close()
+      return
+
     # load the pickled data and shuffle it around
     (x,t,vocabulary) = load_data(n, cal_only)
     (x,t) = shuffle_data(x,t)
