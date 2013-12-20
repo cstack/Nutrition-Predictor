@@ -60,20 +60,18 @@ def GuessTheMedianTest(x_train, t_train, x_test, t_test, params):
   params["median"] = median
   return params
 
-def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors):
-  weights = 'distance'
-
+def KNearestNeighbors(x_train, t_train, x_test, t_test, num_neighbors, weights = 'distance'):
   knn = neighbors.KNeighborsRegressor(num_neighbors, weights)
   t_out = knn.fit(x_train, t_train).predict(x_test)
   error = computeError(t_out, t_test)
   return (t_out,error, knn)
 
-def KNearestNeighborsValidate(x_train, t_train, x_test, t_test):
+def KNearestNeighborsUniformValidate(x_train, t_train, x_test, t_test):
   min_error = float("inf")
   best_k = 0
   neighbors = [1, 3, 5, 10, 15]
   for k in neighbors:
-    (t_out,error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, k)
+    (t_out,error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, k, 'uniform')
     if (error < min_error):
       min_error = error
       best_k = k
@@ -83,12 +81,37 @@ def KNearestNeighborsValidate(x_train, t_train, x_test, t_test):
     "k for neighbors": best_k
   }
 
-def KNearestNeighborsTest(x_train, t_train, x_test, t_test, params):
+def KNearestNeighborsDistanceValidate(x_train, t_train, x_test, t_test):
+  min_error = float("inf")
+  best_k = 0
+  neighbors = [1, 3, 5, 10, 15]
+  for k in neighbors:
+    (t_out,error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, k, 'distance')
+    if (error < min_error):
+      min_error = error
+      best_k = k
+
+  return {
+    "validation error": min_error,
+    "k for neighbors": best_k
+  }
+
+def KNearestNeighborsDistanceTest(x_train, t_train, x_test, t_test, params):
 
   get_num = re.compile('\d+')
   best_k = int(get_num.search(params["k for neighbors"]).group(0))
 
-  (t_out, error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, best_k)
+  (t_out, error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, best_k, 'distance')
+  save_model(knn, "KNearestNeighborsTest", len(x_train), cal_only)
+  params["testing error"] = error
+  return params
+
+def KNearestNeighborsUniformTest(x_train, t_train, x_test, t_test, params):
+
+  get_num = re.compile('\d+')
+  best_k = int(get_num.search(params["k for neighbors"]).group(0))
+
+  (t_out, error, knn) = KNearestNeighbors(x_train, t_train, x_test, t_test, best_k, 'uniform')
   save_model(knn, "KNearestNeighborsTest", len(x_train), cal_only)
   params["testing error"] = error
   return params
@@ -368,9 +391,9 @@ def learnAllUnlearnedModels():
   if len(sys.argv) == 2 and sys.argv[1] == "-c":
     cal_only = True
 
-  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results.txt"
+  results_file = os.path.expanduser(private_consts.SAVE_DIR)+"joshs_results.txt"
   if cal_only:
-    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"results_cal_only.txt"
+    results_file = os.path.expanduser(private_consts.SAVE_DIR)+"joshs_results_cal_only.txt"
 
   try:
     with open(results_file) as f:
@@ -384,9 +407,9 @@ def learnAllUnlearnedModels():
   num_examples = generate_data_sizes(10000)
   num_examples.append("final")
 
-  algorithms = [GuessTheMeanValidate, GuessTheMedianValidate, SupportVectorRegression, GradientBoostingRegressionValidate]
+  algorithms = [KNearestNeighborsUniformValidate]
 
-  testing_algs = [GuessTheMeanTest, GuessTheMedianTest, SupportVectorTesting, GradientBoostingRegressionTest]
+  testing_algs = [KNearestNeighborsUniformTest]
 
 
 
