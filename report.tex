@@ -128,8 +128,6 @@ dress (-1.24) & lc (1.02) \\ [1ex] % [1ex] adds vertical
 \end{table}
 
 
-Fig. 4 - Most and least caloric weights in the learned Support Vector Regression Model on 1,000 examples. Negative weights correspond to tokens that are indicative of high CPG. Positive weights correspond to tokens that are indicative to low CPG.
-
 \subsection{Gradient Boosting Regression}
 Gradient Boosting Regression Trees performed worse than our other regression algorithms, but it still did better than guessing the mean and median. GBR can take an arbitrary differentiable loss function to optimize, so we performed cross validation on Least Squares, Least Absolute Deviation, Huber, and Quantile. Least Absolute Deviation (also called the L1 norm) performed the best. This is most likely because our target values have a very large range, and we measured error as percent deviation (a linear value).
 
@@ -156,8 +154,6 @@ bar, heath & ( ) & 3.51 & 5.71 & 62.68\% \\ [1ex] % [1ex] adds vertical space
 
 
 
-Fig. 5 - Testing examples from one run of KNN with KMeans preprocessing, with the cluster assigned to the example. The cluster assignment includes the weight that the cluster puts on each token, and “()” implies the empty cluster.
-
 The first example is chocolate ice cream. It is assigned to a cluster that places high weights on descriptors for chocolate ice cream, and the prediction error is small. However, the third example is for a heath bar, it is assigned to the empty cluster, and the prediction error is high. Basically, if we can find a really good cluster for the test example, running KNN on that cluster does a great job. If we can’t find a good cluster for the test example, however, the K-nearest neighbors do a poor job at predicting Calories/CPG.
 
 \section{Conclusion}
@@ -168,7 +164,6 @@ This problem ended up being much harder than we anticipated, as the correlation 
 In the end, we created a predictor with moderate accuracy for a novel problem, which may become more useful in the future. Our best algorithm performed at least seven times better than the baseline for 10,000 examples.
 
 \section{References}
-
 \begin{thebibliography}{10}
 
 \bibitem{standfordPaper}Ray, Jamie, Svetlana Lyalina, and Ruby Lee.
@@ -176,16 +171,16 @@ In the end, we created a predictor with moderate accuracy for a novel problem, w
 \texttt{http://cs229.stanford.edu/proj2012/LeeLyalinaRay-PredictingWinePricesfromWineLabels.pdf}.
 
 \bibitem{scikitLearn}
-\emph{Scikit-learn} : Machine Learning in Python — 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013.
+\emph{Scikit-learn} : Machine Learning in Python — 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. 
 \texttt{http://scikit-learn.org/}
 
 \bibitem{nutritionix} \emph{Nutritionix} "Nutrition from the Cloud." N.p., n.d. Web. 20 Dec. 2013. \texttt{http://www.nutritionix.com/api}
 
-\bibitem{NLTK} “Natural Language Toolkit.” NLTK 3.0 documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://nltk.org/}
+\bibitem{NLTK} \emph{Natural Language Toolkit} NLTK 3.0 documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://nltk.org/}
 
-\bibitem{gaussian} "Gaussian Processes." Scikit-learn 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://scikit-learn.org/stable/modules/gaussian\_process.html}
+\bibitem{gaussian} \emph{Gaussian Processes} Scikit-learn 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://scikit-learn.org/stable/modules/gaussian\_process.html}
 
-\bibitem{svm} "Support Vector Machines." Scikit-learn 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://scikit-learn.org/stable/modules/svm.html\#regression}
+\bibitem{svm} \emph{Support Vector Machines} Scikit-learn 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://scikit-learn.org/stable/modules/svm.html\#regression}
 
 \end{thebibliography}
 
