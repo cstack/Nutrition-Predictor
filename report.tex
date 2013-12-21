@@ -1,0 +1,192 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage}
+\usepackage{graphicx}
+
+\title{Nutrition Predictor}
+\author{Josh Billingham, Justine Kunz, Connor Stack}
+\date{December 20, 2013}
+
+\begin{document}
+
+\maketitle
+
+\section{Abstract}
+
+Most restaurants provide only a textual description of their menu items, without any nutritional information. Our project aimed to take the words in the title and description of a food item, and predict the number of calories in that item. We used sparse vectors representing the words in the description as our features. We tried many regression algorithms, and trained them on pure calories and normalized calories per gram. In the end, K-Nearest Neighbors Regression performed the best, with 29.8\% error, but Support Vector Regression came in second, with 64.3\% error. This is a new problem, so there is no state-of-the-art to compare our results to. The results are much better than simply guessing the mean or median, but there is definitely room for improvement.
+
+\section{Introduction}
+Judging by the increasing popularity of alternative eating habits such as veganism, gluten-free diets and vegetarianism, there is no doubt that more people are paying more attention to what they put in their bodies today. However, no matter the exact diet or lifestyle, the most important metric of what you eat is probably calories. Eat too many, and you gain weight, simple as that. Counting calories is pretty easy if you prepare your own food, since the USDA requires that all food packaging display the common “Nutritional Information” label, which details everything from calories to milligrams of sodium. Restaurants are another story though. Instead of a detailed nutrition label, a menu usually presents you with nothing more than a terse description of the food item - perhaps “BBQ Chicken Sandwich”, or “Pesto Chicken Pasta”. It is very hard to estimate how many calories are in these restaurant items, especially if you haven’t tried that specific item before.
+
+A solution to this problem could predict roughly how many calories are in a specific food item on a restaurant menu. Such a service would be useful to anyone who’s even mildly concerned with how much they’re eating when they go out to eat, whether that’s an extreme dieter or someone who is only casually interested in their caloric intake. This service would also make it harder for restaurants to hide behind their menu - hopefully, more transparency in the business would encourage restaurants to provide customers with healthier, more diverse options.
+
+\section{Related Work}
+The idea for this project came from a Stanford Machine Learning research project\cite{standfordPaper} that predicted wine prices from wine bottle descriptions. This project similarly predicts a continuous value (calories per gram) from a textual description (menu items).
+
+The wine prices paper binned examples in \$2 increments, and ran a Naive Bayes classifier to predict which bin an example would show up in. The classifier achieved 30\% accuracy using 10 bins. It trained on about 30,000 examples. We tried to achieve better accuracy by doing regression rather than classification, since the problem is naturally one of regression. However, we did not find any papers dealing with our particular problem of predicting nutritional information from textual descriptions. So we did not have a baseline performance to measure against.
+
+\section{Method}
+Our project aimed to solve this problem by taking in a textual description of a restaurant food item and outputting an accurate estimate of the number of calories in that item. We used Python as our language of implementation, and used the machine learning algorithms included in the scikit-learn\cite{scikitLearn} module to train and test our models.
+
+\subsection{Data and Features}
+The first step in creating our model was to acquire data. After doing a bit of searching around on the web, we decided to use an existing nutrition API called Nutritionix\cite{nutritionix}, which had tens of thousands of food items from restaurants such as Starbucks and Subway. We could query the API for free, and didn’t have to worry about the format of the data.
+
+One of the first things that we had to decide was whether to predict calories or calories per gram (CPG). On one hand, it was much more intuitive to predict calories, since not very many people have any idea what a “normal” calories per gram value is for a given food item. On the other hand, it seemed to be to our advantage to “normalize” as many variables as we could, especially considering that we were working with textual features only. To be more specific, consider two lattes from Starbucks - a “Short Mocha Latte” and a “Venti Mocha Latte”. These items are very textually similar, and should have the same CPG. However, they probably have radically different calories, since a Venti drink is much bigger than a Short drink from Starbucks. So, instead of trying to pick one or the other, we decided to do both. We downloaded 12,000 items with listed calories, and another 12,000 items with listed calories and grams. We treated these data sets as totally separate entities, and ran our algorithms separately on both sets.
+
+The first step in actually constructing our model was creating and populating our feature space. All of the Nutritionix items had a title (i.e. “Pizza”) and a description (i.e. “CUB'S MENU - LUNCH \& DINNER - Pizza”), so we took both of these textual features and tokenized them to create a list of tokens that represented an individual item (i.e. [cubs menu lunch dinner pizza] ). Then, we removed all stop words, which we obtained from the Natural Language Toolkit\cite{NLTK} for Python. Next, we used a stemming module to stem all of the tokens down to their basest form, which allowed us to greatly shrink the feature space. For example, ‘chocolate’, ‘chocolatey’ and ‘chocolatier’ all stemmed down to ‘chocol’. Once we had removed all stop words and stemmed all of the tokens, we combined all of the items’ tokens into a token vocabulary - our feature space. We then sorted the token vocabulary by total number of occurrences in the example set and removed all tokens that appeared only once or twice in the entire example set. The idea behind removing extremely rare tokens was twofold. First, these rare tokens comprised a large portion of our already large feature space. By removing tokens that only appeared once in the example set, we were able to decrease our vocab size for 12,000 examples from about 3500 tokens to less than 2000 tokens, which made all of our algorithms run much faster. Second, we reasoned that the rare tokens didn’t help our algorithms at all - if a token appeared only once or twice in the example set, the vast majority of the time the example(s) containing the token(s) would be in our training set exclusively, and therefore not help predict for the testing set. Accordingly, we also removed any examples that were comprised of exclusively rare tokens. Finally, we had our feature space. A single feature vector was a sparse array of zeros and ones, where a one meant that the example contained the vocab word at that index.
+
+Note that we constructed and populated our feature space based on an entire example set, which was either the 12,000 examples containing calories or the 12,000 examples containing calories and grams. Each of these examples sets produced a separate vocabulary, and therefore a separate feature space. From both of these data sets we were free to create smaller data sets for training and testing. We formed these smaller data sets by randomly selecting a subset of the 12,000 examples, however the length of a feature vector was always the same, since we constructed the feature space based on all 12,000 examples.
+
+\subsection{Regression Methods}
+Our initial approach was simply to try many different regression algorithms and see which performed the best. The scikit-learn\cite{scikitLearn} python module has common machine learning algorithms implemented, so we could simply pass in arrays of sparse vectors to several of their different regression algorithms. To get an idea of which algorithms we should pursue, we ran each on a dataset of 10, 30, 100, and 300 examples with an 80/20\% training-testing split. The preliminary results for 300 examples were as follows:
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=120mm]{images/chart_4.png}
+\caption{Performance of various regression algorithms from preliminary experiments on 300 examples.}
+\label{Figure 1}
+\end{figure}
+
+We took the best performing algorithms (Gradient Boosting Regression, Support Vector Regression, K-Nearest Neighbors, and our custom pipeline combining K-Nearest Neighbors and K-Means) and continued by training them on larger datasets with 5 fold cross-validation over the hyperparamters. We also ran these algorithms several times and averaged the results to get a more reliable idea of their performance. It is also interesting to note that “normal” Linear Regression produced an error so high that it did not even fit on the bar graph shown above.
+
+Although Gaussian Process regression performed well in our initial small-dataset experiments, the algorithm proved too slow to be feasible when we moved up to 3,000 or 10,000 examples. This may be because the algorithm is not suited for high dimensional space. It loses efficiency when there are more than a few dozens of features\cite{gaussian}, while our data has over 1,000 features.
+
+The K-Nearest Neighbors algorithm used to create the chart in Fig. 1 used uniform weights for the K-nearest neighbors, as opposed to distance-based weights. We decided to pursue both flavors of KNN and compare their performance for our final results.
+
+\subsection{K-Nearest Neighbors with K-Means Preprocessing}
+Foods have very distinct categories, and so we thought that we could improve our testing error on KNN by training many models on subsets of similar data, and then predicting each test example from the closest model. So we tried clustering the data using a K-Means algorithm, and then running K-Nearest Neighbors regression for the training and testing examples in each cluster. We used 5 fold cross-validation for the number of clusters for K-Means and the number of neighbors for K-Nearest Neighbors.
+
+\section{Experimental Results}
+We ran each of our best performing algorithms on dataset sizes ranging from 100 examples up to 10,000 examples. For each train/test run, we randomly split the data set 80/20 between training and testing, respectively. We used 5-fold cross validation on smaller data sizes and used the resulting hyperparameters on larger data set sizes, where possible. The results were noisy, so the error values below are generally the average of several trials.
+
+Since our dataset was new, with no previous results to which we could compare our findings, we used two naive algorithms as our baseline. First, “Guess the Mean” simply always predicted the mean calorie value across all training examples. Second, “Guess the Median” did the same, but predicted the median instead of the mean. The performance of these two algorithms give the performance of our own algorithms more context.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=120mm]{images/chart_7.png}
+\caption{Performance of various regression algorithms on CPG data.}
+\label{Figure 2}
+\end{figure}
+
+The best performing algorithms are both flavors of K-Nearest Neighbors and Support Vector Regression. It is interesting to note that these three algorithms performed very similarly on all data set sizes. Intuitively, this seems to makes sense because they each base their predictions off of the most “important” examples, which are a subset of the entire example space. We could not run KNN + KMeans on 10,000 examples because it was taking too long on our machines and the results did not look promising..
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=120mm]{images/chart_8.png}
+\caption{Performance of various regression algorithms on Calorie data.}
+\label{Figure 3}
+\end{figure}
+
+Again, the best performing algorithms were both flavors of KNN and Support Vector Regression, with Gradient Boosting Regression coming in at a close fourth. The most striking feature of this chart is probably the drastic spike at 300 examples. This is probably a result of the 300 example data set itself and not the algorithms. Each dataset is chosen randomly, and the examples in the set of 300 are probably very dissimilar, with very few common tokens, so it’s hard for any algorithm to make a good prediction.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=120mm]{images/chart_9.png}
+\caption{Comparison of error for Calories vs. CPG}
+\label{Figure 4}
+\end{figure}
+
+This bar chart summarizes the data presented in Fig. 2 and Fig. 3. It does not include KNN+KMeans because we could not run that algorithm on 10,000 examples. Nevertheless, there are still more than a few interesting conclusions that we can draw based on the data.
+
+We were able to do much better than our naive baseline algorithms. On 10,000 examples containing only Calories, our best algorithm performed between two and three times better than the baseline. On 10,000 examples containing CPG, our best algorithm performed at least seven times better than the baseline.
+
+In general, all of our algorithms performed much better on CPG data sets rather than Calorie data sets. This has something to do with the data itself, as you can see that the baseline algorithms for CPG perform better than the baseline algorithms for Calories, suggesting that the CPG examples are generally more similar to each other than the Calories examples. However, that doesn’t explain how much better our best algorithms perform for CPG data (7x better) as opposed to Calorie data (2-3x better). This increase in performance may be attributed to the fact that the CPG models do not need to predict the latent variable of serving size in order to predict the number of calories. In other words, “Small Cheeseburger” and “Large Cheeseburger” have similar features and similar CPG, but not Calories.
+
+\subsection{K-Nearest Neighbors}
+The best performing algorithm was K-Nearest Neighbors. For large data sizes (3000 and 10,000), the best value for k was 1, meaning that our best algorithm was really 1NN. This explains perfectly why uniform weights and distance-based weights performed very similarly, since they were only looking at one neighbor regardless. This algorithm is not very interesting, and the fact that it performed the best was a bit disappointing. However, this fact also indicates something about our data, and that is that individual features may not be very independent. This would explain why KNN with k = 1 does so well, and other algorithms don’t - if we have a training example that’s very, very similar (or possibly even the same) as a test example, it’s best just to go with that example’s output value. Considering other similar examples just muddles the picture, since similarities in part of the feature vectors do not really indicate similar caloric content.
+
+Take the example training set { ([pesto], 3 cal), ([pesto, chicken], 500 cal) }. If we want to predict the value for a testing example ([pesto]), which really has 4 calories, it’s much better just to take the nearest neighbor - ([pesto], 3 cal) - and ignore the pesto chicken example, even though it also has similar features.
+
+\subsection{Support Vector Regression}
+Besides K-Nearest Neighbors, Support Vector Regression was our best performing regression algorithm. It also trained quickly compared to other algorithms (such as Gaussian Process Regression), meaning we could run it on large numbers of examples.
+
+SVM is a classification algorithm. SVR is an extension of SVM to regression problems\cite{svm}. The model has two free parameters: C (the penalty parameter of the error term) and epsilon (the distance within the target value for which no penalty is assigned for an example). It also takes a kernel, like SVM. After cross validation, the best-performing kernel was ‘linear’, rather than ‘rbf’. The best C value was 1.9, and the best epsilon was 0.074
+
+SVM’s generally perform well in high-dimensional space, and we had over 1000 features. A linear kernel also makes sense, since our data is really just a bunch of 1’s and 0’s.
+
+The weights it learned ended up being fairly intuitive, with the most caloric tokens on one side and the least caloric on the other.
+
+\begin{table}[ht]
+\caption{Weights of Tokens in Support Vector Regression Model} % title of Table
+\centering % used for centering table
+\begin{tabular}{c c} % centered column
+\hline\hline %inserts double horizontal lines
+Weights of Most Caloric Tokens & Weights of Least Caloric Tokens \\ [0.5ex] % inserts table
+%heading
+\hline % inserts single horizontal line
+oil (-2.30) & marinara (1.83) \\
+candi (-1.72) & lettuc (1.64) \\
+margarin (-1.70) & light (1.39) \\
+saltin (-1.59) & scoop (1.05) \\
+peanut (-1.57) & broccoli (1.03) \\
+ranch (-1.54) & pepperoncini (1.02) \\
+creami (-1.25) & margherita (1.02) \\
+dress (-1.24) & lc (1.02) \\ [1ex] % [1ex] adds vertical
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
+
+
+Fig. 4 - Most and least caloric weights in the learned Support Vector Regression Model on 1,000 examples. Negative weights correspond to tokens that are indicative of high CPG. Positive weights correspond to tokens that are indicative to low CPG.
+
+\subsection{Gradient Boosting Regression}
+Gradient Boosting Regression Trees performed worse than our other regression algorithms, but it still did better than guessing the mean and median. GBR can take an arbitrary differentiable loss function to optimize, so we performed cross validation on Least Squares, Least Absolute Deviation, Huber, and Quantile. Least Absolute Deviation (also called the L1 norm) performed the best. This is most likely because our target values have a very large range, and we measured error as percent deviation (a linear value).
+
+\subsection{K-Nearest Neighbors with K-Means Preprocessing}
+The K-Nearest Neighbors with K-Means preprocessing had the lowest validation error. However, when we started holding out 20\% of the data set for testing, the error was much higher than regular K-Nearest Neighbors. The algorithm was overfitting, and it had very large error for outliers. K-Means handles outliers by putting them in the empty cluster (the cluster pertaining to a sparse vector of all zeros), and so testing examples assigned to the empty cluster were compared to other outliers, with bad results. Figure 5 shows three test examples and the clusters that they were assigned to.
+
+\begin{table}[ht]
+\caption{KNN with KMeans Preprocessing Examples} % title of Table
+\centering % used for centering table
+\begin{tabular}{|p{4cm}|p{4cm}|c|c|c|} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Example Item & Assigned Cluster & Predicted CPG & Actual CPG & Percent Error \\ [0.5ex]
+%heading
+\hline % inserts single horizontal line
+ice, gotta, chocol, cream, ghirardelli & (ice (0.93), love (0.19), gotta (0.28), premium (0.26), chocol (1.00), cream (1.00), like (0.14)) & 2.32 & 2.29 & 1.31\% \\ [1ex] % inserting body of the table
+\hline
+appet, famili, caesar, salad & (caesar (0.14), salad (1.00), chicken (0.32)) & 1.38 & 1.88 & 36.23\% \\ [1ex]
+\hline
+bar, heath & ( ) & 3.51 & 5.71 & 62.68\% \\ [1ex] % [1ex] adds vertical space
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
+
+
+
+Fig. 5 - Testing examples from one run of KNN with KMeans preprocessing, with the cluster assigned to the example. The cluster assignment includes the weight that the cluster puts on each token, and “()” implies the empty cluster.
+
+The first example is chocolate ice cream. It is assigned to a cluster that places high weights on descriptors for chocolate ice cream, and the prediction error is small. However, the third example is for a heath bar, it is assigned to the empty cluster, and the prediction error is high. Basically, if we can find a really good cluster for the test example, running KNN on that cluster does a great job. If we can’t find a good cluster for the test example, however, the K-nearest neighbors do a poor job at predicting Calories/CPG.
+
+\section{Conclusion}
+The best performing algorithms that we tried were K-Nearest Neighbors, which achieved 29.8\% error on 10,000 examples of CPG data, and Support Vector Regression, which achieved 64.3\% error. This is a new problem, so there is no state-of-the-art baseline for us to compare our results against, but we at least did much better than the naive “Predict the Mean” algorithms, which both achieved percent error in the hundreds.
+
+This problem ended up being much harder than we anticipated, as the correlation between text description and calories is not as strong as we hoped. Results on this dataset are fairly noisy, since there is such a wide variety of examples, and similarly-title food items from different restaurants can have different caloric values. This made our algorithms overfit the training /validation set, and then perform poorly on the testing set. If we were to run our experiments again, we would run each trial multiple times with several random samples of the entire dataset, and average the results, instead of maintaining a data set for each size and randomly permuting that.
+
+In the end, we created a predictor with moderate accuracy for a novel problem, which may become more useful in the future. Our best algorithm performed at least seven times better than the baseline for 10,000 examples.
+
+\section{References}
+
+\begin{thebibliography}{10}
+
+\bibitem{standfordPaper}Ray, Jamie, Svetlana Lyalina, and Ruby Lee.
+\emph{Predicting Wine Prices from Wine Labels}, CS 229 at Stanford University (2012): n. pag. Web. 20 Dec. 2013.
+\texttt{http://cs229.stanford.edu/proj2012/LeeLyalinaRay-PredictingWinePricesfromWineLabels.pdf}.
+
+\bibitem{scikitLearn}
+\emph{Scikit-learn} : Machine Learning in Python — 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013.
+\texttt{http://scikit-learn.org/}
+
+\bibitem{nutritionix} \emph{Nutritionix} "Nutrition from the Cloud." N.p., n.d. Web. 20 Dec. 2013. \texttt{http://www.nutritionix.com/api}
+
+\bibitem{NLTK} “Natural Language Toolkit.” NLTK 3.0 documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://nltk.org/}
+
+\bibitem{gaussian} "Gaussian Processes." Scikit-learn 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://scikit-learn.org/stable/modules/gaussian\_process.html}
+
+\bibitem{svm} "Support Vector Machines." Scikit-learn 0.14 Documentation. N.p., n.d. Web. 20 Dec. 2013. \texttt{http://scikit-learn.org/stable/modules/svm.html\#regression}
+
+\end{thebibliography}
+
+\end{document}
