@@ -70,21 +70,19 @@ Since our dataset was new, with no previous results to which we could compare ou
 
 The best performing algorithms are both flavors of K-Nearest Neighbors and Support Vector Regression. It is interesting to note that these three algorithms performed very similarly on all data set sizes. Intuitively, this seems to makes sense because they each base their predictions off of the most “important” examples, which are a subset of the entire example space. We could not run KNN + KMeans on 10,000 examples because it was taking too long on our machines and the results did not look promising..
 
-\begin{figure}[ht!]
-\centering
+\begin{center}
 \includegraphics[width=120mm]{images/chart_8.png}
-\caption{Performance of various regression algorithms on Calorie data.}
-\label{Figure 3}
-\end{figure}
+
+Figure 3 - Performance of various regression algorithms on Calorie data.
+\end{center}
 
 Again, the best performing algorithms were both flavors of KNN and Support Vector Regression, with Gradient Boosting Regression coming in at a close fourth. The most striking feature of this chart is probably the drastic spike at 300 examples. This is probably a result of the 300 example data set itself and not the algorithms. Each dataset is chosen randomly, and the examples in the set of 300 are probably very dissimilar, with very few common tokens, so it’s hard for any algorithm to make a good prediction.
 
-\begin{figure}[ht!]
-\centering
+\begin{center}
 \includegraphics[width=120mm]{images/chart_9.png}
-\caption{Comparison of error for Calories vs. CPG}
-\label{Figure 4}
-\end{figure}
+
+Figure 4 - Comparison of error for Calories vs. CPG
+\end{center}
 
 This bar chart summarizes the data presented in Fig. 2 and Fig. 3. It does not include KNN+KMeans because we could not run that algorithm on 10,000 examples. Nevertheless, there are still more than a few interesting conclusions that we can draw based on the data.
 
